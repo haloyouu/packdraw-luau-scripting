@@ -1,0 +1,55 @@
+{
+    "name": "PackDraw",
+    "tree": {
+        "$className": "DataModel",
+
+        "ReplicatedStorage": {
+            "$className": "ReplicatedStorage",
+
+            "PackConfig": {
+                "$path": "src/ReplicatedStorage/PackConfig.lua"
+            },
+            "PackModule": {
+                "$path": "src/ReplicatedStorage/PackModule.lua"
+            },
+            "UI": {
+                "$className": "Folder",
+                "StoreUI": {
+                    "$path": "src/ReplicatedStorage/UI/StoreUI.lua"
+                },
+                "OpeningUI": {
+                    "$path": "src/ReplicatedStorage/UI/OpeningUI.lua"
+                }
+            },
+            "Remotes": {
+                "$className": "Folder",
+                "OpenPack": {
+                    "$className": "RemoteFunction"
+                },
+                "GetData": {
+                    "$className": "RemoteFunction"
+                },
+                "UpdateBalance": {
+                    "$className": "RemoteEvent"
+                }
+            }
+        },
+
+        "ServerScriptService": {
+            "$className": "ServerScriptService",
+            "PackServer": {
+                "$path": "src/ServerScriptService/PackServer.server.lua"
+            }
+        },
+
+        "StarterPlayer": {
+            "$className": "StarterPlayer",
+            "StarterPlayerScripts": {
+                "$className": "StarterPlayerScripts",
+                "PackClient": {
+                    "$path": "src/StarterPlayerScripts/PackClient.client.lua"
+                }
+            }
+        }
+    }
+}
