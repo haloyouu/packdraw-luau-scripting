@@ -95,7 +95,7 @@ function StoreUI:_build()
     balance.Size                 = UDim2.new(0, 220, 1, 0)
     balance.Position             = UDim2.new(0.5, -110, 0, 0)
     balance.BackgroundTransparency = 1
-    balance.Text                 = "0 Coins"
+    balance.Text                 = "$0"
     balance.TextColor3           = GOLD
     balance.Font                 = Enum.Font.GothamBold
     balance.TextSize             = 18
@@ -245,7 +245,7 @@ function StoreUI:_makeCard(pack, order: number)
     if pack.price == 0 then
         openBtn.Text = "FREE  —  OPEN"
     else
-        openBtn.Text = "OPEN  —  " .. PackModule.formatNumber(pack.price) .. " Coins"
+        openBtn.Text = "OPEN  —  $" .. PackModule.formatNumber(pack.price)
     end
 
     -- Hover effect
@@ -288,7 +288,7 @@ end
 
 -- Update the balance display in the header
 function StoreUI:updateBalance(balance: number)
-    self.balanceLabel.Text = PackModule.formatNumber(balance) .. " Coins"
+    self.balanceLabel.Text = "$" .. PackModule.formatNumber(balance)
 end
 
 -- Refresh open-button text for packs that have a cooldown

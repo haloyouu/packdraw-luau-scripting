@@ -117,7 +117,7 @@ function PackModule.canOpenPack(pack, balance: number, lastOpenTime: number?)
 
     if pack.price > 0 and balance < pack.price then
         return false,
-            string.format("You need %s coins. You have %s.",
+            string.format("You need $%s. You have $%s.",
                 PackModule.formatNumber(pack.price),
                 PackModule.formatNumber(balance))
     end

@@ -61,7 +61,7 @@ local function loadData(player: Player)
     leaderstats.Parent = player
 
     local coins = Instance.new("IntValue")
-    coins.Name  = "Coins"
+    coins.Name  = "Cash"
     coins.Value = data.balance
     coins.Parent = leaderstats
 end
@@ -89,7 +89,7 @@ local function syncBalance(player: Player)
 
     local ls = player:FindFirstChild("leaderstats")
     if ls then
-        local coins = ls:FindFirstChild("Coins")
+        local coins = ls:FindFirstChild("Cash")
         if coins then coins.Value = data.balance end
     end
 

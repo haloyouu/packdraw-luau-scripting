@@ -112,7 +112,7 @@ PackConfig.PackTiers = {
 -- ─────────────────────────────────────────────
 --   name        (string)  Display name shown on the reward card.
 --   imageId     (string)  "rbxassetid://..." artwork for the reward.
---   moneyAmount (number)  Coins granted to the player on winning this item.
+--   moneyAmount (number)  Cash granted to the player on winning this item.
 --   weight      (number)  Drop weight. Higher = more common.
 --                         E.g. weight=50 is 50× more likely than weight=1.
 --   rarity      (string)  Key into ItemRarities above (badge colour).
@@ -132,11 +132,11 @@ PackConfig.Packs = {
         cooldown    = 86400,
         enabled     = true,
         rewards     = {
-            { name = "10 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 10,  weight = 50, rarity = "Common"    },
-            { name = "25 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 25,  weight = 30, rarity = "Uncommon"  },
-            { name = "50 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 50,  weight = 14, rarity = "Rare"      },
-            { name = "150 Coins", imageId = "rbxassetid://6034871478", moneyAmount = 150, weight = 5,  rarity = "Epic"      },
-            { name = "500 Coins", imageId = "rbxassetid://6034871478", moneyAmount = 500, weight = 1,  rarity = "Legendary" },
+            { name = "$10",  imageId = "rbxassetid://6034871478", moneyAmount = 10,  weight = 50, rarity = "Common"    },
+            { name = "$25",  imageId = "rbxassetid://6034871478", moneyAmount = 25,  weight = 30, rarity = "Uncommon"  },
+            { name = "$50",  imageId = "rbxassetid://6034871478", moneyAmount = 50,  weight = 14, rarity = "Rare"      },
+            { name = "$150", imageId = "rbxassetid://6034871478", moneyAmount = 150, weight = 5,  rarity = "Epic"      },
+            { name = "$500", imageId = "rbxassetid://6034871478", moneyAmount = 500, weight = 1,  rarity = "Legendary" },
         },
     },
 
@@ -153,11 +153,11 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "100 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 100,  weight = 40, rarity = "Uncommon"  },
-            { name = "250 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 250,  weight = 30, rarity = "Rare"      },
-            { name = "600 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 600,  weight = 18, rarity = "Rare"      },
-            { name = "1500 Coins", imageId = "rbxassetid://6034871478", moneyAmount = 1500, weight = 10, rarity = "Epic"      },
-            { name = "5000 Coins", imageId = "rbxassetid://6034871478", moneyAmount = 5000, weight = 2,  rarity = "Legendary" },
+            { name = "$100",  imageId = "rbxassetid://6034871478", moneyAmount = 100,  weight = 40, rarity = "Uncommon"  },
+            { name = "$250",  imageId = "rbxassetid://6034871478", moneyAmount = 250,  weight = 30, rarity = "Rare"      },
+            { name = "$600",  imageId = "rbxassetid://6034871478", moneyAmount = 600,  weight = 18, rarity = "Rare"      },
+            { name = "$1,500", imageId = "rbxassetid://6034871478", moneyAmount = 1500, weight = 10, rarity = "Epic"      },
+            { name = "$5,000", imageId = "rbxassetid://6034871478", moneyAmount = 5000, weight = 2,  rarity = "Legendary" },
         },
     },
 
@@ -174,11 +174,11 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "500 Coins",   imageId = "rbxassetid://6034871478", moneyAmount = 500,   weight = 35, rarity = "Rare"      },
-            { name = "1000 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 1000,  weight = 30, rarity = "Rare"      },
-            { name = "3000 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 3000,  weight = 20, rarity = "Epic"      },
-            { name = "8000 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 8000,  weight = 12, rarity = "Epic"      },
-            { name = "25000 Coins", imageId = "rbxassetid://6034871478", moneyAmount = 25000, weight = 3,  rarity = "Legendary" },
+            { name = "$500",    imageId = "rbxassetid://6034871478", moneyAmount = 500,   weight = 35, rarity = "Rare"      },
+            { name = "$1,000",  imageId = "rbxassetid://6034871478", moneyAmount = 1000,  weight = 30, rarity = "Rare"      },
+            { name = "$3,000",  imageId = "rbxassetid://6034871478", moneyAmount = 3000,  weight = 20, rarity = "Epic"      },
+            { name = "$8,000",  imageId = "rbxassetid://6034871478", moneyAmount = 8000,  weight = 12, rarity = "Epic"      },
+            { name = "$25,000", imageId = "rbxassetid://6034871478", moneyAmount = 25000, weight = 3,  rarity = "Legendary" },
         },
     },
 
@@ -195,11 +195,11 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "5000 Coins",   imageId = "rbxassetid://6034871478", moneyAmount = 5000,   weight = 30, rarity = "Rare"      },
-            { name = "12000 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 12000,  weight = 28, rarity = "Epic"      },
-            { name = "30000 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 30000,  weight = 22, rarity = "Epic"      },
-            { name = "75000 Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 75000,  weight = 15, rarity = "Legendary" },
-            { name = "250000 Coins", imageId = "rbxassetid://6034871478", moneyAmount = 250000, weight = 5,  rarity = "Legendary" },
+            { name = "$5,000",   imageId = "rbxassetid://6034871478", moneyAmount = 5000,   weight = 30, rarity = "Rare"      },
+            { name = "$12,000",  imageId = "rbxassetid://6034871478", moneyAmount = 12000,  weight = 28, rarity = "Epic"      },
+            { name = "$30,000",  imageId = "rbxassetid://6034871478", moneyAmount = 30000,  weight = 22, rarity = "Epic"      },
+            { name = "$75,000",  imageId = "rbxassetid://6034871478", moneyAmount = 75000,  weight = 15, rarity = "Legendary" },
+            { name = "$250,000", imageId = "rbxassetid://6034871478", moneyAmount = 250000, weight = 5,  rarity = "Legendary" },
         },
     },
 
@@ -216,11 +216,11 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "750 Gold Coins",   imageId = "rbxassetid://6034871478", moneyAmount = 750,   weight = 40, rarity = "Uncommon"  },
-            { name = "2000 Gold Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 2000,  weight = 30, rarity = "Rare"      },
-            { name = "5000 Gold Coins",  imageId = "rbxassetid://6034871478", moneyAmount = 5000,  weight = 18, rarity = "Epic"      },
-            { name = "15000 Gold Coins", imageId = "rbxassetid://6034871478", moneyAmount = 15000, weight = 10, rarity = "Epic"      },
-            { name = "50000 Gold Coins", imageId = "rbxassetid://6034871478", moneyAmount = 50000, weight = 2,  rarity = "Legendary" },
+            { name = "$750 Gold",   imageId = "rbxassetid://6034871478", moneyAmount = 750,   weight = 40, rarity = "Uncommon"  },
+            { name = "$2,000 Gold", imageId = "rbxassetid://6034871478", moneyAmount = 2000,  weight = 30, rarity = "Rare"      },
+            { name = "$5,000 Gold", imageId = "rbxassetid://6034871478", moneyAmount = 5000,  weight = 18, rarity = "Epic"      },
+            { name = "$15,000 Gold",imageId = "rbxassetid://6034871478", moneyAmount = 15000, weight = 10, rarity = "Epic"      },
+            { name = "$50,000 Gold",imageId = "rbxassetid://6034871478", moneyAmount = 50000, weight = 2,  rarity = "Legendary" },
         },
     },
 

@@ -248,7 +248,7 @@ function OpeningUI:revealReward(reward)
             self.rewardName.Text    = reward.name
             self.rewardName.Visible = true
 
-            self.moneyLbl.Text    = "+ " .. PackModule.formatNumber(reward.moneyAmount) .. " Coins"
+            self.moneyLbl.Text    = "+ $" .. PackModule.formatNumber(reward.moneyAmount)
             self.moneyLbl.Visible = true
 
             task.delay(0.25, function()
