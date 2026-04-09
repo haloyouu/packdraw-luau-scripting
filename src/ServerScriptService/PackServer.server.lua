@@ -2,8 +2,8 @@
 -- PackServer  (Script — ServerScriptService)
 --
 -- Authoritative server script.
--- Owns player data (balance + cooldowns), validates every pack-open request,
--- grants rewards, and persists data via DataStoreService.
+-- Opening a pack gives the player an ITEM stored in their inventory.
+-- Players sell items via the SellItem remote to receive cash.
 -- =============================================================================
 
 local Players            = game:GetService("Players")
@@ -12,31 +12,34 @@ local DataStoreService   = game:GetService("DataStoreService")
 
 local PackModule = require(ReplicatedStorage:WaitForChild("PackModule"))
 
--- Remotes (created by Rojo / project.json at startup)
-local Remotes           = ReplicatedStorage:WaitForChild("Remotes")
-local OpenPackFunction  = Remotes:WaitForChild("OpenPack")   :: RemoteFunction
-local GetDataFunction   = Remotes:WaitForChild("GetData")    :: RemoteFunction
-local UpdateBalanceEvent= Remotes:WaitForChild("UpdateBalance") :: RemoteEvent
+-- Remotes
+local Remotes            = ReplicatedStorage:WaitForChild("Remotes")
+local OpenPackFunction   = Remotes:WaitForChild("OpenPack")     :: RemoteFunction
+local SellItemFunction   = Remotes:WaitForChild("SellItem")     :: RemoteFunction
+local GetDataFunction    = Remotes:WaitForChild("GetData")      :: RemoteFunction
+local UpdateBalanceEvent = Remotes:WaitForChild("UpdateBalance") :: RemoteEvent
 
--- DataStore – bump version suffix if you wipe saves intentionally
-local Store = DataStoreService:GetDataStore("PackDraw_v1")
+-- DataStore
+local Store = DataStoreService:GetDataStore("PackDraw_v2")
 
--- In-memory cache:  [UserId] = { balance, cooldowns, totalOpened }
-local cache: { [number]: { balance: number, cooldowns: { [string]: number }, totalOpened: number } } = {}
+-- In-memory cache
+local cache = {}
 
 -- ---------------------------------------------------------------------------
--- Default data for a brand-new player
+-- Default data for a new player
 -- ---------------------------------------------------------------------------
 local function defaultData()
     return {
-        balance     = 1000,  -- starting coins (adjust freely)
-        cooldowns   = {},    -- [packId] = unix timestamp of last open
+        balance     = 1000,   -- starting cash
+        cooldowns   = {},     -- [packId] = unix timestamp of last open
+        inventory   = {},     -- [itemId] = { name, imageId, sellValue, rarity }
+        nextItemId  = 0,      -- auto-increment counter for inventory slots
         totalOpened = 0,
     }
 end
 
 -- ---------------------------------------------------------------------------
--- Load + merge with defaults (safe against new keys added to defaultData)
+-- Load from DataStore, merge over defaults
 -- ---------------------------------------------------------------------------
 local function loadData(player: Player)
     local ok, stored = pcall(function()
@@ -45,7 +48,6 @@ local function loadData(player: Player)
 
     local data = defaultData()
     if ok and type(stored) == "table" then
-        -- Merge stored values over defaults (handles new fields gracefully)
         for k, v in pairs(stored) do
             data[k] = v
         end
@@ -55,19 +57,18 @@ local function loadData(player: Player)
 
     cache[player.UserId] = data
 
-    -- Create leaderstats folder
     local leaderstats = Instance.new("Folder")
-    leaderstats.Name = "leaderstats"
+    leaderstats.Name   = "leaderstats"
     leaderstats.Parent = player
 
-    local coins = Instance.new("IntValue")
-    coins.Name  = "Cash"
-    coins.Value = data.balance
-    coins.Parent = leaderstats
+    local cash = Instance.new("IntValue")
+    cash.Name   = "Cash"
+    cash.Value  = data.balance
+    cash.Parent = leaderstats
 end
 
 -- ---------------------------------------------------------------------------
--- Persist a player's current cache to the DataStore
+-- Persist to DataStore
 -- ---------------------------------------------------------------------------
 local function saveData(player: Player)
     local data = cache[player.UserId]
@@ -81,24 +82,22 @@ local function saveData(player: Player)
 end
 
 -- ---------------------------------------------------------------------------
--- Push the current balance to leaderstats and fire the client event
+-- Sync leaderstats + fire client balance event
 -- ---------------------------------------------------------------------------
 local function syncBalance(player: Player)
     local data = cache[player.UserId]
     if not data then return end
-
     local ls = player:FindFirstChild("leaderstats")
     if ls then
-        local coins = ls:FindFirstChild("Cash")
-        if coins then coins.Value = data.balance end
+        local cash = ls:FindFirstChild("Cash")
+        if cash then cash.Value = data.balance end
     end
-
     UpdateBalanceEvent:FireClient(player, data.balance)
 end
 
 -- ---------------------------------------------------------------------------
 -- RemoteFunction: GetData
--- Returns a safe copy of the player's data for the client.
+-- Returns balance, cooldowns, and full inventory to the client.
 -- ---------------------------------------------------------------------------
 GetDataFunction.OnServerInvoke = function(player: Player)
     local data = cache[player.UserId]
@@ -106,16 +105,17 @@ GetDataFunction.OnServerInvoke = function(player: Player)
     return {
         balance     = data.balance,
         cooldowns   = data.cooldowns,
+        inventory   = data.inventory,
         totalOpened = data.totalOpened,
     }
 end
 
 -- ---------------------------------------------------------------------------
 -- RemoteFunction: OpenPack
--- The only place rewards are rolled and granted — always server-authoritative.
+-- Deducts price, rolls reward, stores item in inventory — does NOT give cash.
+-- Returns the item the player won (including its inventory slot id).
 -- ---------------------------------------------------------------------------
 OpenPackFunction.OnServerInvoke = function(player: Player, packId: string)
-    -- Basic type guard
     if type(packId) ~= "string" then
         return { success = false, reason = "Invalid request." }
     end
@@ -130,18 +130,17 @@ OpenPackFunction.OnServerInvoke = function(player: Player, packId: string)
         return { success = false, reason = "Pack not found." }
     end
 
-    local lastOpen = data.cooldowns[packId]
-    local canOpen, reason = PackModule.canOpenPack(pack, data.balance, lastOpen)
+    local canOpen, reason = PackModule.canOpenPack(pack, data.balance, data.cooldowns[packId])
     if not canOpen then
         return { success = false, reason = reason }
     end
 
-    -- Deduct price
+    -- Deduct pack price
     if pack.price > 0 then
         data.balance -= pack.price
     end
 
-    -- Record cooldown timestamp (for free / limited packs)
+    -- Record cooldown
     if pack.cooldown > 0 then
         data.cooldowns[packId] = os.time()
     end
@@ -149,25 +148,64 @@ OpenPackFunction.OnServerInvoke = function(player: Player, packId: string)
     -- Roll reward
     local reward = PackModule.rollReward(pack)
 
-    -- Grant reward
-    data.balance    += reward.moneyAmount
+    -- Add item to inventory
+    data.nextItemId = (data.nextItemId or 0) + 1
+    local itemId = data.nextItemId
+    data.inventory[itemId] = {
+        name      = reward.name,
+        imageId   = reward.imageId,
+        sellValue = reward.sellValue,
+        rarity    = reward.rarity,
+    }
+
     data.totalOpened += 1
 
-    -- Sync client display
+    -- Sync balance (pack price was deducted)
     syncBalance(player)
-
-    -- Fire-and-forget save
     task.spawn(saveData, player)
 
     return {
         success = true,
-        reward = {
-            name        = reward.name,
-            imageId     = reward.imageId,
-            moneyAmount = reward.moneyAmount,
-            rarity      = reward.rarity,
+        item = {
+            id        = itemId,
+            name      = reward.name,
+            imageId   = reward.imageId,
+            sellValue = reward.sellValue,
+            rarity    = reward.rarity,
         },
         newBalance = data.balance,
+    }
+end
+
+-- ---------------------------------------------------------------------------
+-- RemoteFunction: SellItem
+-- Removes item from inventory and adds its sellValue to the player's balance.
+-- ---------------------------------------------------------------------------
+SellItemFunction.OnServerInvoke = function(player: Player, itemId: number)
+    if type(itemId) ~= "number" then
+        return { success = false, reason = "Invalid item." }
+    end
+
+    local data = cache[player.UserId]
+    if not data then
+        return { success = false, reason = "Player data not ready." }
+    end
+
+    local item = data.inventory[itemId]
+    if not item then
+        return { success = false, reason = "Item not found in inventory." }
+    end
+
+    data.balance += item.sellValue
+    data.inventory[itemId] = nil
+
+    syncBalance(player)
+    task.spawn(saveData, player)
+
+    return {
+        success    = true,
+        newBalance = data.balance,
+        earned     = item.sellValue,
     }
 end
 
@@ -202,7 +240,6 @@ task.spawn(function()
     end
 end)
 
--- Bind on close (final save attempt before shutdown)
 game:BindToClose(function()
     for _, player in ipairs(Players:GetPlayers()) do
         saveData(player)

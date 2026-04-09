@@ -9,8 +9,6 @@ local PackConfig = {}
 
 -- =============================================================================
 -- ITEM RARITY DEFINITIONS
--- Controls badge colors on reward reveal.
--- Add new keys here and use them in any reward's `rarity` field below.
 -- =============================================================================
 PackConfig.ItemRarities = {
     Common = {
@@ -37,14 +35,6 @@ PackConfig.ItemRarities = {
 
 -- =============================================================================
 -- PACK TIER / THEME DEFINITIONS
--- Each tier has its own color scheme for the store card.
--- Add new themes here and reference them with the `tier` key on a pack.
---
---   displayName   – label shown on the tier badge
---   primaryColor  – main accent (stripe, button, glow border)
---   secondaryColor– darker shade for backgrounds
---   glowColor     – bright highlight shown during the reveal animation
---   textColor     – text drawn on top of primaryColor
 -- =============================================================================
 PackConfig.PackTiers = {
     Free = {
@@ -93,155 +83,149 @@ PackConfig.PackTiers = {
 
 -- =============================================================================
 -- PACK DEFINITIONS
--- Each entry in this table is one pack shown in the store.
 --
--- Top-level pack fields
--- ─────────────────────
---   id          (string)  Unique identifier. DO NOT change after launch —
---                         it is used as the DataStore key for cooldowns.
---   name        (string)  Display name on the store card.
---   description (string)  Short flavour text on the card.
+-- Top-level pack fields:
+--   id          (string)  Unique ID — do NOT change after launch.
+--   name        (string)  Display name in the store.
+--   description (string)  Flavour text on the pack card.
 --   imageId     (string)  "rbxassetid://..." artwork for the pack.
---   price       (number)  Cost in coins. 0 = free to open.
---   tier        (string)  Key into PackTiers above (sets card colour theme).
---   cooldown    (number)  Seconds the player must wait between opens.
---                         0 = unlimited. 86400 = 24 hours.
---   enabled     (boolean) false hides the pack without deleting config.
+--   price       (number)  Cost in cash. 0 = free.
+--   tier        (string)  Key into PackTiers (controls card colour theme).
+--   cooldown    (number)  Seconds between opens. 0 = unlimited. 86400 = 24 h.
+--   enabled     (boolean) false hides the pack without removing config.
 --
--- Reward item fields (inside `rewards = { … }`)
--- ─────────────────────────────────────────────
---   name        (string)  Display name shown on the reward card.
---   imageId     (string)  "rbxassetid://..." artwork for the reward.
---   moneyAmount (number)  Cash granted to the player on winning this item.
---   weight      (number)  Drop weight. Higher = more common.
---                         E.g. weight=50 is 50× more likely than weight=1.
---   rarity      (string)  Key into ItemRarities above (badge colour).
+-- Reward item fields (inside `rewards = { … }`):
+--   name        (string)  The real-life item the player receives.
+--   imageId     (string)  "rbxassetid://..." artwork for the item.
+--   sellValue   (number)  How much cash the player gets when they sell it.
+--   weight      (number)  Drop weight — higher = more common.
+--   rarity      (string)  Key into ItemRarities (badge colour).
 -- =============================================================================
 PackConfig.Packs = {
 
     -- =========================================================================
-    -- FREE PACK
+    -- FREE PACK  –  basic everyday items, open once per 24 h
     -- =========================================================================
     {
         id          = "free_pack",
         name        = "Free Pack",
-        description = "Open once every 24 h. A free taste of the draw!",
+        description = "Open once every 24 h. Real items, real (game) value!",
         imageId     = "rbxassetid://6034871478",
         price       = 0,
         tier        = "Free",
         cooldown    = 86400,
         enabled     = true,
         rewards     = {
-            { name = "$10",  imageId = "rbxassetid://6034871478", moneyAmount = 10,  weight = 50, rarity = "Common"    },
-            { name = "$25",  imageId = "rbxassetid://6034871478", moneyAmount = 25,  weight = 30, rarity = "Uncommon"  },
-            { name = "$50",  imageId = "rbxassetid://6034871478", moneyAmount = 50,  weight = 14, rarity = "Rare"      },
-            { name = "$150", imageId = "rbxassetid://6034871478", moneyAmount = 150, weight = 5,  rarity = "Epic"      },
-            { name = "$500", imageId = "rbxassetid://6034871478", moneyAmount = 500, weight = 1,  rarity = "Legendary" },
+            { name = "Used Bicycle",      imageId = "rbxassetid://6034871478", sellValue = 10,  weight = 50, rarity = "Common"    },
+            { name = "Vintage Poster",    imageId = "rbxassetid://6034871478", sellValue = 25,  weight = 30, rarity = "Uncommon"  },
+            { name = "Old Skateboard",    imageId = "rbxassetid://6034871478", sellValue = 50,  weight = 14, rarity = "Rare"      },
+            { name = "Retro Game Console",imageId = "rbxassetid://6034871478", sellValue = 150, weight = 5,  rarity = "Epic"      },
+            { name = "Signed Jersey",     imageId = "rbxassetid://6034871478", sellValue = 500, weight = 1,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
-    -- RARE PACK
+    -- RARE PACK  –  consumer electronics & gear
     -- =========================================================================
     {
         id          = "rare_pack",
         name        = "Rare Pack",
-        description = "Improved drop rates. Worth every coin.",
+        description = "Consumer tech and gear. Better odds, better hauls.",
         imageId     = "rbxassetid://6034871478",
         price       = 500,
         tier        = "Rare",
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "$100",  imageId = "rbxassetid://6034871478", moneyAmount = 100,  weight = 40, rarity = "Uncommon"  },
-            { name = "$250",  imageId = "rbxassetid://6034871478", moneyAmount = 250,  weight = 30, rarity = "Rare"      },
-            { name = "$600",  imageId = "rbxassetid://6034871478", moneyAmount = 600,  weight = 18, rarity = "Rare"      },
-            { name = "$1,500", imageId = "rbxassetid://6034871478", moneyAmount = 1500, weight = 10, rarity = "Epic"      },
-            { name = "$5,000", imageId = "rbxassetid://6034871478", moneyAmount = 5000, weight = 2,  rarity = "Legendary" },
+            { name = "Smartphone",      imageId = "rbxassetid://6034871478", sellValue = 100,  weight = 40, rarity = "Uncommon"  },
+            { name = "Gaming Chair",    imageId = "rbxassetid://6034871478", sellValue = 250,  weight = 30, rarity = "Rare"      },
+            { name = "Designer Sneakers",imageId = "rbxassetid://6034871478", sellValue = 600,  weight = 18, rarity = "Rare"      },
+            { name = "Gaming PC Setup", imageId = "rbxassetid://6034871478", sellValue = 1500, weight = 10, rarity = "Epic"      },
+            { name = "Dirt Bike",       imageId = "rbxassetid://6034871478", sellValue = 5000, weight = 2,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
-    -- EPIC PACK
+    -- EPIC PACK  –  luxury goods and sports cars
     -- =========================================================================
     {
         id          = "epic_pack",
         name        = "Epic Pack",
-        description = "High-value rewards. Epic & Legendary chances boosted.",
+        description = "Luxury goods and sports cars. Epic drops guaranteed.",
         imageId     = "rbxassetid://6034871478",
         price       = 2000,
         tier        = "Epic",
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "$500",    imageId = "rbxassetid://6034871478", moneyAmount = 500,   weight = 35, rarity = "Rare"      },
-            { name = "$1,000",  imageId = "rbxassetid://6034871478", moneyAmount = 1000,  weight = 30, rarity = "Rare"      },
-            { name = "$3,000",  imageId = "rbxassetid://6034871478", moneyAmount = 3000,  weight = 20, rarity = "Epic"      },
-            { name = "$8,000",  imageId = "rbxassetid://6034871478", moneyAmount = 8000,  weight = 12, rarity = "Epic"      },
-            { name = "$25,000", imageId = "rbxassetid://6034871478", moneyAmount = 25000, weight = 3,  rarity = "Legendary" },
+            { name = "Electric Scooter", imageId = "rbxassetid://6034871478", sellValue = 500,   weight = 35, rarity = "Rare"      },
+            { name = "MacBook Pro",      imageId = "rbxassetid://6034871478", sellValue = 1000,  weight = 30, rarity = "Rare"      },
+            { name = "Rolex Submariner", imageId = "rbxassetid://6034871478", sellValue = 3000,  weight = 20, rarity = "Epic"      },
+            { name = "Audemars Piguet",  imageId = "rbxassetid://6034871478", sellValue = 8000,  weight = 12, rarity = "Epic"      },
+            { name = "Porsche 911",      imageId = "rbxassetid://6034871478", sellValue = 25000, weight = 3,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
-    -- LEGENDARY PACK
+    -- LEGENDARY PACK  –  supercars, helicopters, yachts
     -- =========================================================================
     {
         id          = "legendary_pack",
         name        = "Legendary Pack",
-        description = "The ultimate pack. Massive rewards and real prestige.",
+        description = "Supercars, helicopters, yachts. The ultimate haul.",
         imageId     = "rbxassetid://6034871478",
         price       = 10000,
         tier        = "Legendary",
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "$5,000",   imageId = "rbxassetid://6034871478", moneyAmount = 5000,   weight = 30, rarity = "Rare"      },
-            { name = "$12,000",  imageId = "rbxassetid://6034871478", moneyAmount = 12000,  weight = 28, rarity = "Epic"      },
-            { name = "$30,000",  imageId = "rbxassetid://6034871478", moneyAmount = 30000,  weight = 22, rarity = "Epic"      },
-            { name = "$75,000",  imageId = "rbxassetid://6034871478", moneyAmount = 75000,  weight = 15, rarity = "Legendary" },
-            { name = "$250,000", imageId = "rbxassetid://6034871478", moneyAmount = 250000, weight = 5,  rarity = "Legendary" },
+            { name = "Ferrari 458",         imageId = "rbxassetid://6034871478", sellValue = 5000,   weight = 30, rarity = "Rare"      },
+            { name = "Lamborghini Huracan", imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 28, rarity = "Epic"      },
+            { name = "Private Helicopter",  imageId = "rbxassetid://6034871478", sellValue = 30000,  weight = 22, rarity = "Epic"      },
+            { name = "Bugatti Chiron",      imageId = "rbxassetid://6034871478", sellValue = 75000,  weight = 15, rarity = "Legendary" },
+            { name = "Private Yacht",       imageId = "rbxassetid://6034871478", sellValue = 250000, weight = 5,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
-    -- GOLD PACK  (theme pack)
+    -- GOLD PACK  –  gold jewellery and bullion
     -- =========================================================================
     {
         id          = "gold_pack",
         name        = "Gold Pack",
-        description = "Gilded riches await. Fortune favors the bold.",
+        description = "Gold jewellery and bullion. Gilded riches await.",
         imageId     = "rbxassetid://6034871478",
         price       = 3000,
         tier        = "Gold",
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "$750 Gold",   imageId = "rbxassetid://6034871478", moneyAmount = 750,   weight = 40, rarity = "Uncommon"  },
-            { name = "$2,000 Gold", imageId = "rbxassetid://6034871478", moneyAmount = 2000,  weight = 30, rarity = "Rare"      },
-            { name = "$5,000 Gold", imageId = "rbxassetid://6034871478", moneyAmount = 5000,  weight = 18, rarity = "Epic"      },
-            { name = "$15,000 Gold",imageId = "rbxassetid://6034871478", moneyAmount = 15000, weight = 10, rarity = "Epic"      },
-            { name = "$50,000 Gold",imageId = "rbxassetid://6034871478", moneyAmount = 50000, weight = 2,  rarity = "Legendary" },
+            { name = "Gold Ring",     imageId = "rbxassetid://6034871478", sellValue = 750,   weight = 40, rarity = "Uncommon"  },
+            { name = "Gold Bracelet", imageId = "rbxassetid://6034871478", sellValue = 2000,  weight = 30, rarity = "Rare"      },
+            { name = "Gold Necklace", imageId = "rbxassetid://6034871478", sellValue = 5000,  weight = 18, rarity = "Epic"      },
+            { name = "Gold Watch",    imageId = "rbxassetid://6034871478", sellValue = 15000, weight = 10, rarity = "Epic"      },
+            { name = "Gold Bar",      imageId = "rbxassetid://6034871478", sellValue = 50000, weight = 2,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
-    -- DIAMOND PACK  (theme pack)
+    -- DIAMOND PACK  –  diamond jewellery
     -- =========================================================================
     {
         id          = "diamond_pack",
         name        = "Diamond Pack",
-        description = "Crystalline perfection. Only the finest rewards inside.",
+        description = "Diamond jewellery. Only the finest rewards inside.",
         imageId     = "rbxassetid://6034871478",
         price       = 7500,
         tier        = "Diamond",
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "2500 Diamonds",   imageId = "rbxassetid://6034871478", moneyAmount = 2500,   weight = 35, rarity = "Rare"      },
-            { name = "6000 Diamonds",   imageId = "rbxassetid://6034871478", moneyAmount = 6000,   weight = 28, rarity = "Rare"      },
-            { name = "15000 Diamonds",  imageId = "rbxassetid://6034871478", moneyAmount = 15000,  weight = 20, rarity = "Epic"      },
-            { name = "40000 Diamonds",  imageId = "rbxassetid://6034871478", moneyAmount = 40000,  weight = 12, rarity = "Legendary" },
-            { name = "120000 Diamonds", imageId = "rbxassetid://6034871478", moneyAmount = 120000, weight = 5,  rarity = "Legendary" },
+            { name = "Diamond Earrings", imageId = "rbxassetid://6034871478", sellValue = 2500,   weight = 35, rarity = "Rare"      },
+            { name = "Diamond Ring",     imageId = "rbxassetid://6034871478", sellValue = 6000,   weight = 28, rarity = "Rare"      },
+            { name = "Diamond Necklace", imageId = "rbxassetid://6034871478", sellValue = 15000,  weight = 20, rarity = "Epic"      },
+            { name = "Diamond Watch",    imageId = "rbxassetid://6034871478", sellValue = 40000,  weight = 12, rarity = "Legendary" },
+            { name = "Diamond Crown",    imageId = "rbxassetid://6034871478", sellValue = 120000, weight = 5,  rarity = "Legendary" },
         },
     },
 }

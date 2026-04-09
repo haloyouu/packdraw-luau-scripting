@@ -19,11 +19,17 @@
                 },
                 "OpeningUI": {
                     "$path": "src/ReplicatedStorage/UI/OpeningUI.lua"
+                },
+                "InventoryUI": {
+                    "$path": "src/ReplicatedStorage/UI/InventoryUI.lua"
                 }
             },
             "Remotes": {
                 "$className": "Folder",
                 "OpenPack": {
+                    "$className": "RemoteFunction"
+                },
+                "SellItem": {
                     "$className": "RemoteFunction"
                 },
                 "GetData": {
