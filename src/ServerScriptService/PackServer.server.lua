@@ -12,12 +12,27 @@ local DataStoreService   = game:GetService("DataStoreService")
 
 local PackModule = require(ReplicatedStorage:WaitForChild("PackModule"))
 
--- Remotes
-local Remotes            = ReplicatedStorage:WaitForChild("Remotes")
-local OpenPackFunction   = Remotes:WaitForChild("OpenPack")     :: RemoteFunction
-local SellItemFunction   = Remotes:WaitForChild("SellItem")     :: RemoteFunction
-local GetDataFunction    = Remotes:WaitForChild("GetData")      :: RemoteFunction
-local UpdateBalanceEvent = Remotes:WaitForChild("UpdateBalance") :: RemoteEvent
+-- Create the Remotes folder and all remote instances.
+-- The server owns these; clients use WaitForChild to find them.
+local Remotes = Instance.new("Folder")
+Remotes.Name   = "Remotes"
+Remotes.Parent = ReplicatedStorage
+
+local OpenPackFunction   = Instance.new("RemoteFunction")
+OpenPackFunction.Name    = "OpenPack"
+OpenPackFunction.Parent  = Remotes
+
+local SellItemFunction   = Instance.new("RemoteFunction")
+SellItemFunction.Name    = "SellItem"
+SellItemFunction.Parent  = Remotes
+
+local GetDataFunction    = Instance.new("RemoteFunction")
+GetDataFunction.Name     = "GetData"
+GetDataFunction.Parent   = Remotes
+
+local UpdateBalanceEvent = Instance.new("RemoteEvent")
+UpdateBalanceEvent.Name   = "UpdateBalance"
+UpdateBalanceEvent.Parent = Remotes
 
 -- DataStore
 local Store = DataStoreService:GetDataStore("PackDraw_v2")
