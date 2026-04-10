@@ -1,8 +1,5 @@
 -- =============================================================================
 -- PackClient  (LocalScript — StarterPlayerScripts)
---
--- Entry point for all client-side logic.
--- Wires together StoreUI, OpeningUI, InventoryUI, and the server remotes.
 -- =============================================================================
 
 local Players           = game:GetService("Players")
@@ -12,27 +9,27 @@ local TweenService      = game:GetService("TweenService")
 local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Modules
 local PackModule  = require(ReplicatedStorage:WaitForChild("PackModule"))
 local UI          = ReplicatedStorage:WaitForChild("UI")
 local StoreUI     = require(UI:WaitForChild("StoreUI"))
 local OpeningUI   = require(UI:WaitForChild("OpeningUI"))
 local InventoryUI = require(UI:WaitForChild("InventoryUI"))
 
--- Remotes
 local Remotes           = ReplicatedStorage:WaitForChild("Remotes")
-local OpenPackFn        = Remotes:WaitForChild("OpenPack")     :: RemoteFunction
-local SellItemFn        = Remotes:WaitForChild("SellItem")     :: RemoteFunction
-local GetDataFn         = Remotes:WaitForChild("GetData")      :: RemoteFunction
+local OpenPackFn        = Remotes:WaitForChild("OpenPack")      :: RemoteFunction
+local SellItemFn        = Remotes:WaitForChild("SellItem")      :: RemoteFunction
+local GetDataFn         = Remotes:WaitForChild("GetData")       :: RemoteFunction
 local UpdateBalanceEvt  = Remotes:WaitForChild("UpdateBalance") :: RemoteEvent
+local FlexItemEvt       = Remotes:WaitForChild("FlexItem")      :: RemoteEvent
+local StopFlexEvt       = Remotes:WaitForChild("StopFlex")      :: RemoteEvent
 
 -- =========================================================================
 -- State
 -- =========================================================================
 local playerData = { balance = 0, cooldowns = {}, inventory = {} }
 local isOpening  = false
+local isFlexing  = false
 
--- Build UIs
 local store     = StoreUI.new(playerGui)
 local opening   = OpeningUI.new(playerGui)
 local inventory = InventoryUI.new(playerGui)
@@ -42,9 +39,7 @@ local inventory = InventoryUI.new(playerGui)
 -- =========================================================================
 local function refreshData()
     local data = GetDataFn:InvokeServer()
-    if data then
-        playerData = data
-    end
+    if data then playerData = data end
 end
 
 local function refreshStore()
@@ -60,9 +55,9 @@ local function refreshInventory()
 end
 
 -- =========================================================================
--- Balance updates pushed from the server
+-- Balance updates from server
 -- =========================================================================
-UpdateBalanceEvt.OnClientEvent:Connect(function(newBalance: number)
+UpdateBalanceEvt.OnClientEvent:Connect(function(newBalance)
     playerData.balance = newBalance
     store:updateBalance(newBalance)
     inventory:updateBalance(newBalance)
@@ -71,22 +66,21 @@ end)
 -- =========================================================================
 -- Pack opening flow
 -- =========================================================================
-local function openPack(packId: string)
+local function openPack(packId)
     if isOpening then return end
-
     local pack = PackModule.getPackById(packId)
     if not pack then return end
 
-    -- Optimistic client-side check (server re-validates authoritatively)
+    -- Optimistic client-side gate (server re-validates authoritatively)
     local canOpen, reason = PackModule.canOpenPack(pack, playerData.balance, playerData.cooldowns[packId])
     if not canOpen then
         local entry = store.packCards[packId]
         if entry then
             local tier = PackModule.getPackTier(pack.tier)
+            entry.openBtn.Text = reason
             TweenService:Create(entry.openBtn, TweenInfo.new(0.1), {
                 BackgroundColor3 = Color3.fromRGB(200, 50, 50)
             }):Play()
-            entry.openBtn.Text = reason
             task.delay(1.8, function()
                 TweenService:Create(entry.openBtn, TweenInfo.new(0.2), {
                     BackgroundColor3 = tier.primaryColor
@@ -101,37 +95,34 @@ local function openPack(packId: string)
     store:hide()
     opening:showOpening(pack)
 
-    -- Ask the server to open the pack
     local result = OpenPackFn:InvokeServer(packId)
 
     if result and result.success then
-        -- Update local cooldown cache
-        if pack.cooldown > 0 then
-            playerData.cooldowns[packId] = os.time()
-        end
-        -- Deduct price locally (server already did it; keep display in sync)
+        if pack.cooldown > 0 then playerData.cooldowns[packId] = os.time() end
         playerData.balance = result.newBalance
 
-        -- Dramatic pause before flipping the card
-        task.delay(0.9, function()
+        -- Small pause so the pop-in animation finishes before the reel starts
+        task.delay(0.5, function()
             opening:revealItem(result.item)
         end)
 
-        -- SELL callback: call server, then return to store
+        -- SELL: server call, then return to store
         opening.onSell = function(item)
+            if not item then isOpening = false; return end
             local sellResult = SellItemFn:InvokeServer(item.id)
             if sellResult and sellResult.success then
                 playerData.balance = sellResult.newBalance
-                -- Remove from local inventory cache
                 playerData.inventory[item.id] = nil
+                inventory:removeItem(item.id)
             end
             isOpening = false
             refreshStore()
             store:show()
         end
 
-        -- KEEP callback: add to local inventory cache, badge the inventory button
+        -- KEEP: stash in local inventory cache, pulse the button
         opening.onKeep = function(item)
+            if not item then isOpening = false; return end
             playerData.inventory[item.id] = {
                 name      = item.name,
                 imageId   = item.imageId,
@@ -142,38 +133,50 @@ local function openPack(packId: string)
             isOpening = false
             refreshStore()
             store:show()
-            -- Pulse the inventory button to hint at the new item
             _pulseInventoryBtn()
         end
     else
-        opening:showError(result and result.reason or "Something went wrong. Try again.")
-        task.delay(2.8, function()
+        opening:showError(result and result.reason or "Something went wrong.")
+        -- onKeep is used as the "dismiss" path from showError
+        opening.onKeep = function(_)
             isOpening = false
             refreshStore()
             store:show()
-        end)
+        end
     end
 end
 
 store.onPackSelect = openPack
 
 -- =========================================================================
--- Inventory sell callback (from the inventory screen)
+-- Inventory SELL callback
+-- Returns true if server confirmed, false otherwise (so button knows)
 -- =========================================================================
-inventory.onSellItem = function(itemId: number)
+inventory.onSellItem = function(itemId)
     local item = playerData.inventory[itemId]
-    if not item then return end
+    if not item then return false end
 
     local result = SellItemFn:InvokeServer(itemId)
     if result and result.success then
         playerData.balance = result.newBalance
         playerData.inventory[itemId] = nil
-        -- inventory:removeItem is called inside the card's click handler
+        return true
     end
+    return false
 end
 
 -- =========================================================================
--- Bottom-bar buttons
+-- Inventory FLEX callback
+-- =========================================================================
+inventory.onFlexItem = function(itemId, item)
+    FlexItemEvt:FireServer(item.name, item.rarity, item.sellValue)
+    isFlexing = true
+    stopFlexBtn.Visible = true
+    inventory:hide()
+end
+
+-- =========================================================================
+-- Bottom bar buttons
 -- =========================================================================
 local btnGui = Instance.new("ScreenGui")
 btnGui.Name          = "BottomBarGui"
@@ -181,12 +184,12 @@ btnGui.ResetOnSpawn  = false
 btnGui.ZIndexBehavior= Enum.ZIndexBehavior.Sibling
 btnGui.Parent        = playerGui
 
--- Helper to create a bottom bar button
-local function makeBarBtn(text, bgColor, xOffset)
+local function makeBarBtn(text, color, xOffset, width)
+    width = width or 160
     local btn = Instance.new("TextButton")
-    btn.Size            = UDim2.fromOffset(160, 50)
+    btn.Size            = UDim2.fromOffset(width, 50)
     btn.Position        = UDim2.new(0.5, xOffset, 1, -68)
-    btn.BackgroundColor3= bgColor
+    btn.BackgroundColor3= color
     btn.Text            = text
     btn.TextColor3      = Color3.fromRGB(255, 255, 255)
     btn.Font            = Enum.Font.GothamBold
@@ -197,17 +200,13 @@ local function makeBarBtn(text, bgColor, xOffset)
     return btn
 end
 
--- Store button (left of centre)
-local storeBtn = makeBarBtn("Open Store", Color3.fromRGB(75, 55, 200), -170)
+-- Store button
+local storeBtn = makeBarBtn("Open Store", Color3.fromRGB(75, 55, 200), -175)
 storeBtn.MouseEnter:Connect(function()
-    TweenService:Create(storeBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(100, 80, 230)
-    }):Play()
+    TweenService:Create(storeBtn, TweenInfo.new(0.12), { BackgroundColor3 = Color3.fromRGB(100, 80, 230) }):Play()
 end)
 storeBtn.MouseLeave:Connect(function()
-    TweenService:Create(storeBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(75, 55, 200)
-    }):Play()
+    TweenService:Create(storeBtn, TweenInfo.new(0.12), { BackgroundColor3 = Color3.fromRGB(75, 55, 200) }):Play()
 end)
 storeBtn.MouseButton1Click:Connect(function()
     if store.screenGui.Enabled or inventory.screenGui.Enabled or isOpening then return end
@@ -215,17 +214,13 @@ storeBtn.MouseButton1Click:Connect(function()
     store:show()
 end)
 
--- Inventory button (right of centre)
+-- Inventory button
 local invBtn = makeBarBtn("Inventory", Color3.fromRGB(40, 120, 160), 10)
 invBtn.MouseEnter:Connect(function()
-    TweenService:Create(invBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(55, 160, 200)
-    }):Play()
+    TweenService:Create(invBtn, TweenInfo.new(0.12), { BackgroundColor3 = Color3.fromRGB(55, 160, 200) }):Play()
 end)
 invBtn.MouseLeave:Connect(function()
-    TweenService:Create(invBtn, TweenInfo.new(0.12), {
-        BackgroundColor3 = Color3.fromRGB(40, 120, 160)
-    }):Play()
+    TweenService:Create(invBtn, TweenInfo.new(0.12), { BackgroundColor3 = Color3.fromRGB(40, 120, 160) }):Play()
 end)
 invBtn.MouseButton1Click:Connect(function()
     if store.screenGui.Enabled or inventory.screenGui.Enabled or isOpening then return end
@@ -234,9 +229,30 @@ invBtn.MouseButton1Click:Connect(function()
     inventory:show()
 end)
 
--- Pulse animation for the inventory button (called after KEEP)
+-- Stop Flexing button (hidden until FLEX is active)
+-- Placed above the normal buttons so it's noticeable
+local stopFlexBtn = Instance.new("TextButton")
+stopFlexBtn.Size            = UDim2.fromOffset(180, 44)
+stopFlexBtn.Position        = UDim2.new(0.5, -90, 1, -126)  -- above bar buttons
+stopFlexBtn.BackgroundColor3= Color3.fromRGB(200, 40, 40)
+stopFlexBtn.Text            = "Stop Flexing"
+stopFlexBtn.TextColor3      = Color3.fromRGB(255, 255, 255)
+stopFlexBtn.Font            = Enum.Font.GothamBold
+stopFlexBtn.TextSize        = 14
+stopFlexBtn.BorderSizePixel = 0
+stopFlexBtn.Visible         = false
+stopFlexBtn.Parent          = btnGui
+Instance.new("UICorner", stopFlexBtn).CornerRadius = UDim.new(0, 10)
+
+stopFlexBtn.MouseButton1Click:Connect(function()
+    StopFlexEvt:FireServer()
+    isFlexing = false
+    stopFlexBtn.Visible = false
+end)
+
+-- Pulse the inventory button after KEEP (forward declared here so it's in scope)
 function _pulseInventoryBtn()
-    local orig = Color3.fromRGB(40, 120, 160)
+    local orig   = Color3.fromRGB(40, 120, 160)
     local bright = Color3.fromRGB(80, 220, 255)
     TweenService:Create(invBtn, TweenInfo.new(0.3), { BackgroundColor3 = bright }):Play()
     task.delay(0.35, function()
@@ -245,7 +261,7 @@ function _pulseInventoryBtn()
 end
 
 -- =========================================================================
--- Cooldown countdown ticker (1 Hz)
+-- Cooldown countdown (1 Hz)
 -- =========================================================================
 task.spawn(function()
     while true do

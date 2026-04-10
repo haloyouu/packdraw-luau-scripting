@@ -1,7 +1,8 @@
 -- =============================================================================
 -- InventoryUI  (ModuleScript — ReplicatedStorage/UI)
 --
--- Shows all items the player currently holds and lets them sell any of them.
+-- Scrollable grid of held items. Each card has SELL and FLEX buttons.
+-- Sell button only removes the card after the server confirms success.
 -- =============================================================================
 
 local TweenService = game:GetService("TweenService")
@@ -14,8 +15,10 @@ local CARD_BG   = Color3.fromRGB(28,  28,  48)
 local TEXT_W    = Color3.fromRGB(255, 255, 255)
 local TEXT_DIM  = Color3.fromRGB(160, 160, 200)
 local GOLD      = Color3.fromRGB(255, 220,  50)
-local SELL_CLR  = Color3.fromRGB(50,  200, 100)
-local SELL_HOV  = Color3.fromRGB(70,  230, 120)
+local SELL_CLR  = Color3.fromRGB( 50, 200, 100)
+local SELL_HOV  = Color3.fromRGB( 70, 230, 120)
+local FLEX_CLR  = Color3.fromRGB(130,  40, 210)
+local FLEX_HOV  = Color3.fromRGB(160,  70, 240)
 
 -- ---------------------------------------------------------------------------
 local InventoryUI = {}
@@ -25,7 +28,8 @@ function InventoryUI.new(playerGui)
     local self = setmetatable({}, InventoryUI)
     self.playerGui   = playerGui
     self.itemCards   = {}    -- [itemId] = card Frame
-    self.onSellItem  = nil   -- callback(itemId)
+    self.onSellItem  = nil   -- callback(itemId) → must return true/false
+    self.onFlexItem  = nil   -- callback(itemId, item)
     self:_build()
     return self
 end
@@ -40,7 +44,6 @@ function InventoryUI:_build()
     sg.Parent         = self.playerGui
     self.screenGui    = sg
 
-    -- Backdrop
     local backdrop = Instance.new("Frame")
     backdrop.Size                  = UDim2.fromScale(1, 1)
     backdrop.BackgroundColor3      = DARK_BG
@@ -48,7 +51,6 @@ function InventoryUI:_build()
     backdrop.BorderSizePixel       = 0
     backdrop.Parent                = sg
 
-    -- Panel
     local panel = Instance.new("Frame")
     panel.Name            = "Panel"
     panel.Size            = UDim2.fromScale(0.88, 0.86)
@@ -59,7 +61,7 @@ function InventoryUI:_build()
     Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 14)
     self.panel = panel
 
-    -- Header bar
+    -- Header
     local header = Instance.new("Frame")
     header.Size            = UDim2.new(1, 0, 0, 62)
     header.BackgroundColor3= HEADER_BG
@@ -85,7 +87,6 @@ function InventoryUI:_build()
     title.TextXAlignment      = Enum.TextXAlignment.Left
     title.Parent              = header
 
-    -- Balance label
     local balance = Instance.new("TextLabel")
     balance.Name                 = "Balance"
     balance.Size                 = UDim2.new(0, 220, 1, 0)
@@ -98,7 +99,6 @@ function InventoryUI:_build()
     balance.Parent               = header
     self.balanceLabel = balance
 
-    -- Close button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size            = UDim2.new(0, 38, 0, 38)
     closeBtn.Position        = UDim2.new(1, -52, 0.5, -19)
@@ -112,7 +112,7 @@ function InventoryUI:_build()
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 8)
     closeBtn.MouseButton1Click:Connect(function() self:hide() end)
 
-    -- Empty state label
+    -- Empty state
     local emptyLbl = Instance.new("TextLabel")
     emptyLbl.Name                  = "EmptyLabel"
     emptyLbl.Size                  = UDim2.new(1, 0, 1, -80)
@@ -141,7 +141,7 @@ function InventoryUI:_build()
     self.scroll = scroll
 
     local grid = Instance.new("UIGridLayout")
-    grid.CellSize            = UDim2.new(0, 200, 0, 280)
+    grid.CellSize            = UDim2.new(0, 200, 0, 320)   -- taller to fit both buttons
     grid.CellPadding         = UDim2.new(0, 16, 0, 16)
     grid.SortOrder           = Enum.SortOrder.LayoutOrder
     grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -154,9 +154,7 @@ function InventoryUI:_build()
 end
 
 -- ---------------------------------------------------------------------------
--- Create one item card inside the scroll frame
--- ---------------------------------------------------------------------------
-function InventoryUI:_makeCard(itemId: number, item, order: number)
+function InventoryUI:_makeCard(itemId, item, order)
     local rarityInfo = PackModule.getItemRarity(item.rarity)
 
     local card = Instance.new("Frame")
@@ -167,7 +165,7 @@ function InventoryUI:_makeCard(itemId: number, item, order: number)
     card.Parent           = self.scroll
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 12)
 
-    -- Rarity colour top strip
+    -- Rarity top strip
     local strip = Instance.new("Frame")
     strip.Size            = UDim2.new(1, 0, 0, 6)
     strip.BackgroundColor3= rarityInfo.color
@@ -204,48 +202,48 @@ function InventoryUI:_makeCard(itemId: number, item, order: number)
 
     -- Item image
     local img = Instance.new("ImageLabel")
-    img.Size            = UDim2.new(1, -20, 0, 120)
-    img.Position        = UDim2.new(0, 10, 0, 42)
-    img.BackgroundColor3= rarityInfo.color
-    img.BackgroundTransparency = 0.7
-    img.BorderSizePixel = 0
-    img.Image           = item.imageId
-    img.ScaleType       = Enum.ScaleType.Fit
-    img.Parent          = card
+    img.Size                 = UDim2.new(1, -20, 0, 118)
+    img.Position             = UDim2.new(0, 10, 0, 42)
+    img.BackgroundColor3     = rarityInfo.color
+    img.BackgroundTransparency = 0.75
+    img.BorderSizePixel      = 0
+    img.Image                = item.imageId
+    img.ScaleType            = Enum.ScaleType.Fit
+    img.Parent               = card
     Instance.new("UICorner", img).CornerRadius = UDim.new(0, 8)
 
     -- Item name
     local nameLbl = Instance.new("TextLabel")
-    nameLbl.Size                  = UDim2.new(1, -20, 0, 44)
-    nameLbl.Position              = UDim2.new(0, 10, 0, 170)
+    nameLbl.Size                  = UDim2.new(1, -20, 0, 40)
+    nameLbl.Position              = UDim2.new(0, 10, 0, 168)
     nameLbl.BackgroundTransparency= 1
     nameLbl.Text                  = item.name
     nameLbl.TextColor3            = TEXT_W
     nameLbl.Font                  = Enum.Font.GothamBold
-    nameLbl.TextSize              = 14
+    nameLbl.TextSize              = 13
     nameLbl.TextWrapped           = true
     nameLbl.TextYAlignment        = Enum.TextYAlignment.Top
     nameLbl.Parent                = card
 
     -- Sell value
     local valueLbl = Instance.new("TextLabel")
-    valueLbl.Size                  = UDim2.new(1, -20, 0, 22)
-    valueLbl.Position              = UDim2.new(0, 10, 0, 212)
+    valueLbl.Size                  = UDim2.new(1, -20, 0, 20)
+    valueLbl.Position              = UDim2.new(0, 10, 0, 210)
     valueLbl.BackgroundTransparency= 1
     valueLbl.Text                  = "Sell: $" .. PackModule.formatNumber(item.sellValue)
     valueLbl.TextColor3            = GOLD
     valueLbl.Font                  = Enum.Font.GothamBold
-    valueLbl.TextSize              = 13
+    valueLbl.TextSize              = 12
     valueLbl.Parent                = card
 
-    -- Sell button
+    -- ── SELL button (BUG FIX: card only removed after server confirms) ───
     local sellBtn = Instance.new("TextButton")
-    sellBtn.Size            = UDim2.new(1, -20, 0, 36)
-    sellBtn.Position        = UDim2.new(0, 10, 1, -46)
+    sellBtn.Size            = UDim2.new(1, -20, 0, 34)
+    sellBtn.Position        = UDim2.new(0, 10, 1, -82)
     sellBtn.BackgroundColor3= SELL_CLR
     sellBtn.BorderSizePixel = 0
     sellBtn.Font            = Enum.Font.GothamBold
-    sellBtn.TextSize        = 14
+    sellBtn.TextSize        = 13
     sellBtn.TextColor3      = TEXT_W
     sellBtn.Text            = "SELL"
     sellBtn.Parent          = card
@@ -258,13 +256,52 @@ function InventoryUI:_makeCard(itemId: number, item, order: number)
         TweenService:Create(sellBtn, TweenInfo.new(0.12), { BackgroundColor3 = SELL_CLR }):Play()
     end)
     sellBtn.MouseButton1Click:Connect(function()
+        -- Disable button immediately to prevent double-clicks
+        sellBtn.Active = false
+        sellBtn.Text   = "Selling..."
+        sellBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+
+        local success = false
         if self.onSellItem then
-            self.onSellItem(itemId)
+            success = self.onSellItem(itemId)
         end
-        -- Remove card immediately for responsiveness
-        card:Destroy()
-        self.itemCards[itemId] = nil
-        self:_checkEmpty()
+
+        if success then
+            -- Server confirmed → remove card
+            card:Destroy()
+            self.itemCards[itemId] = nil
+            self:_checkEmpty()
+        else
+            -- Server rejected → restore button
+            sellBtn.Active           = true
+            sellBtn.Text             = "SELL"
+            sellBtn.BackgroundColor3 = SELL_CLR
+        end
+    end)
+
+    -- ── FLEX button ─────────────────────────────────────────────────────
+    local flexBtn = Instance.new("TextButton")
+    flexBtn.Size            = UDim2.new(1, -20, 0, 34)
+    flexBtn.Position        = UDim2.new(0, 10, 1, -44)
+    flexBtn.BackgroundColor3= FLEX_CLR
+    flexBtn.BorderSizePixel = 0
+    flexBtn.Font            = Enum.Font.GothamBold
+    flexBtn.TextSize        = 13
+    flexBtn.TextColor3      = TEXT_W
+    flexBtn.Text            = "FLEX IT"
+    flexBtn.Parent          = card
+    Instance.new("UICorner", flexBtn).CornerRadius = UDim.new(0, 8)
+
+    flexBtn.MouseEnter:Connect(function()
+        TweenService:Create(flexBtn, TweenInfo.new(0.12), { BackgroundColor3 = FLEX_HOV }):Play()
+    end)
+    flexBtn.MouseLeave:Connect(function()
+        TweenService:Create(flexBtn, TweenInfo.new(0.12), { BackgroundColor3 = FLEX_CLR }):Play()
+    end)
+    flexBtn.MouseButton1Click:Connect(function()
+        if self.onFlexItem then
+            self.onFlexItem(itemId, item)
+        end
     end)
 
     self.itemCards[itemId] = card
@@ -281,11 +318,8 @@ end
 -- Public API
 -- ---------------------------------------------------------------------------
 
--- Rebuild the grid from an inventory table: { [itemId] = itemData, ... }
 function InventoryUI:populate(inventory)
-    for _, card in pairs(self.itemCards) do
-        card:Destroy()
-    end
+    for _, card in pairs(self.itemCards) do card:Destroy() end
     self.itemCards = {}
 
     local order = 1
@@ -293,39 +327,33 @@ function InventoryUI:populate(inventory)
         self:_makeCard(itemId, item, order)
         order += 1
     end
-
     self:_checkEmpty()
 end
 
--- Add a single new item card without rebuilding the whole grid
-function InventoryUI:addItem(itemId: number, item)
-    local order = 0
+function InventoryUI:addItem(itemId, item)
+    local maxOrder = 0
     for _, card in pairs(self.itemCards) do
-        order = math.max(order, card.LayoutOrder)
+        maxOrder = math.max(maxOrder, card.LayoutOrder)
     end
-    self:_makeCard(itemId, item, order + 1)
+    self:_makeCard(itemId, item, maxOrder + 1)
     self:_checkEmpty()
 end
 
--- Remove a card by itemId (e.g. after selling from the opening screen)
-function InventoryUI:removeItem(itemId: number)
+function InventoryUI:removeItem(itemId)
     local card = self.itemCards[itemId]
-    if card then
-        card:Destroy()
-        self.itemCards[itemId] = nil
-    end
+    if card then card:Destroy(); self.itemCards[itemId] = nil end
     self:_checkEmpty()
 end
 
-function InventoryUI:updateBalance(balance: number)
+function InventoryUI:updateBalance(balance)
     self.balanceLabel.Text = "$" .. PackModule.formatNumber(balance)
 end
 
 function InventoryUI:show()
     self.screenGui.Enabled = true
-    self.panel.Position = UDim2.fromScale(0.06, 0.00)
+    self.panel.Position = UDim2.fromScale(0.06, 0)
     TweenService:Create(self.panel, TweenInfo.new(0.35, Enum.EasingStyle.Back), {
-        Position = UDim2.fromScale(0.06, 0.07),
+        Position = UDim2.fromScale(0.06, 0.07)
     }):Play()
 end
 
