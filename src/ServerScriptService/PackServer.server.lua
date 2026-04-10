@@ -25,6 +25,7 @@ end
 local OpenPackFunction   = makeRF("OpenPack")
 local SellItemFunction   = makeRF("SellItem")
 local GetDataFunction    = makeRF("GetData")
+local ClaimWorkFunction  = makeRF("ClaimWork")  -- 60 s cooldown earn
 local UpdateBalanceEvent = makeRE("UpdateBalance")
 local FlexItemEvent      = makeRE("FlexItem")   -- client → server: show billboard
 local StopFlexEvent      = makeRE("StopFlex")   -- client → server: hide billboard
@@ -33,13 +34,20 @@ local StopFlexEvent      = makeRE("StopFlex")   -- client → server: hide billb
 local Store = DataStoreService:GetDataStore("PackDraw_v2")
 local cache = {}
 
+local WORK_COOLDOWN  = 60      -- seconds between Work claims
+local DAILY_AMOUNT   = 1000   -- daily login bonus
+local WORK_MIN       = 150
+local WORK_MAX       = 400
+
 local function defaultData()
     return {
-        balance     = 1000,
-        cooldowns   = {},   -- [packId] = timestamp
-        inventory   = {},   -- [tostring(itemId)] = { name, imageId, sellValue, rarity }
-        nextItemId  = 0,
-        totalOpened = 0,
+        balance       = 1000,
+        cooldowns     = {},   -- [packId] = timestamp
+        inventory     = {},   -- [tostring(itemId)] = { name, imageId, sellValue, rarity }
+        nextItemId    = 0,
+        totalOpened   = 0,
+        lastWork      = 0,    -- os.time() of last Work claim
+        lastDailyBonus= 0,    -- os.time() of last daily bonus
     }
 end
 
@@ -56,6 +64,21 @@ local function loadData(player)
 
     local ls   = Instance.new("Folder"); ls.Name = "leaderstats"; ls.Parent = player
     local cash = Instance.new("IntValue"); cash.Name = "Cash"; cash.Value = data.balance; cash.Parent = ls
+
+    -- Daily login bonus: award once per 24 hours on join
+    local lastBonus = data.lastDailyBonus or 0
+    if os.time() - lastBonus >= 86400 then
+        data.balance        += DAILY_AMOUNT
+        data.lastDailyBonus  = os.time()
+        task.spawn(saveData, player)
+        -- Signal the client after a short delay so the UI is ready
+        task.delay(3, function()
+            if player and player.Parent then
+                syncBalance(player)
+                UpdateBalanceEvent:FireClient(player, data.balance, "daily", DAILY_AMOUNT)
+            end
+        end)
+    end
 end
 
 local function saveData(player)
@@ -81,7 +104,30 @@ GetDataFunction.OnServerInvoke = function(player)
     local data = cache[player.UserId]
     if not data then return nil end
     return { balance = data.balance, cooldowns = data.cooldowns,
-             inventory = data.inventory, totalOpened = data.totalOpened }
+             inventory = data.inventory, totalOpened = data.totalOpened,
+             lastWork  = data.lastWork  or 0 }
+end
+
+-- ---------------------------------------------------------------------------
+ClaimWorkFunction.OnServerInvoke = function(player)
+    local data = cache[player.UserId]
+    if not data then return { success = false, reason = "Data not ready." } end
+
+    local elapsed = os.time() - (data.lastWork or 0)
+    if elapsed < WORK_COOLDOWN then
+        local remaining = WORK_COOLDOWN - elapsed
+        return { success = false, remaining = remaining,
+                 reason = string.format("Work again in %ds", remaining) }
+    end
+
+    local earned     = math.random(WORK_MIN, WORK_MAX)
+    data.balance    += earned
+    data.lastWork    = os.time()
+
+    syncBalance(player)
+    task.spawn(saveData, player)
+
+    return { success = true, earned = earned, newBalance = data.balance }
 end
 
 -- ---------------------------------------------------------------------------

@@ -22,9 +22,10 @@ StoreUI.__index = StoreUI
 
 function StoreUI.new(playerGui)
     local self = setmetatable({}, StoreUI)
-    self.playerGui  = playerGui
-    self.packCards  = {}         -- [packId] = { card, openBtn, pack }
-    self.onPackSelect = nil      -- callback(packId)
+    self.playerGui     = playerGui
+    self.packCards     = {}         -- [packId] = { card, openBtn, pack }
+    self.onPackSelect  = nil        -- callback(packId)
+    self.onPackPreview = nil        -- callback(packId)  ← preview modal
     self:_build()
     return self
 end
@@ -149,13 +150,24 @@ end
 function StoreUI:_makeCard(pack, order: number)
     local tier = PackModule.getPackTier(pack.tier)
 
-    local card = Instance.new("Frame")
+    -- Card is a TextButton so clicking anywhere on it (not the open button)
+    -- opens the preview modal. In Roblox GUI, child buttons absorb their own
+    -- clicks and do NOT propagate to the parent button.
+    local card = Instance.new("TextButton")
     card.Name             = pack.id
     card.BackgroundColor3 = CARD_BG
     card.BorderSizePixel  = 0
     card.LayoutOrder      = order
+    card.Text             = ""
+    card.AutoButtonColor  = false
     card.Parent           = self.scroll
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 12)
+
+    card.MouseButton1Click:Connect(function()
+        if self.onPackPreview then
+            self.onPackPreview(pack.id)
+        end
+    end)
 
     -- Coloured top strip
     local strip = Instance.new("Frame")
