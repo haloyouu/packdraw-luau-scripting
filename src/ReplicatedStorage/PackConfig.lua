@@ -198,27 +198,19 @@ PackConfig.PackTiers = {
 -- =============================================================================
 -- PACK DEFINITIONS
 --
--- Top-level pack fields:
---   id          (string)  Unique ID — do NOT change after launch.
---   name        (string)  Display name in the store.
---   description (string)  Flavour text on the pack card.
---   imageId     (string)  "rbxassetid://..." artwork for the pack.
---   price       (number)  Cost in cash. 0 = free.
---   tier        (string)  Key into PackTiers (controls card colour theme).
---   cooldown    (number)  Seconds between opens. 0 = unlimited. 86400 = 24 h.
---   enabled     (boolean) false hides the pack without removing config.
---
--- Reward item fields (inside `rewards = { … }`):
---   name        (string)  The real-life item the player receives.
---   imageId     (string)  "rbxassetid://..." artwork for the item.
---   sellValue   (number)  How much cash the player gets when they sell it.
---   weight      (number)  Drop weight — higher = more common.
---   rarity      (string)  Key into ItemRarities (badge colour).
+-- Weight guide (steeper = rarer legendary relative to pack price):
+--   ∞  ratio (free pack)      → legendary weight 1
+--   ~10x ratio ($500 pack)    → legendary weight 2
+--   ~12x ratio ($2k pack)     → legendary weight 2
+--   ~17x ratio ($3k pack)     → legendary weight 1
+--   ~25x ratio ($10k pack)    → legendary weight 1 (yacht) / 8 (Bugratti)
+--   30x+ ratio (new cases)    → legendary weight 1, epics ≤ 4
 -- =============================================================================
 PackConfig.Packs = {
 
     -- =========================================================================
-    -- FREE PACK  –  basic everyday items, open once per 24 h
+    -- FREE PACK  –  open once per 24 h
+    -- Legendary ($500) is effectively infinite ratio vs price ($0) → weight 1
     -- =========================================================================
     {
         id          = "free_pack",
@@ -230,16 +222,17 @@ PackConfig.Packs = {
         cooldown    = 86400,
         enabled     = true,
         rewards     = {
-            { name = "Used Bicycle",      imageId = "rbxassetid://6034871478", sellValue = 10,  weight = 50, rarity = "Common"    },
-            { name = "Vintage Poster",    imageId = "rbxassetid://6034871478", sellValue = 25,  weight = 30, rarity = "Uncommon"  },
-            { name = "Old Skateboard",    imageId = "rbxassetid://6034871478", sellValue = 50,  weight = 14, rarity = "Rare"      },
-            { name = "Retro Game Console",imageId = "rbxassetid://6034871478", sellValue = 150, weight = 5,  rarity = "Epic"      },
-            { name = "Signed Jersey",     imageId = "rbxassetid://6034871478", sellValue = 500, weight = 1,  rarity = "Legendary" },
+            { name = "Used Bicycle",      imageId = "rbxassetid://129581269",       sellValue = 10,  weight = 50, rarity = "Common"    },
+            { name = "Vintage Poster",    imageId = "rbxassetid://6175214243",      sellValue = 25,  weight = 30, rarity = "Uncommon"  },
+            { name = "Old Skateboard",    imageId = "rbxassetid://129581269",       sellValue = 50,  weight = 14, rarity = "Rare"      },
+            { name = "Retro Game Console",imageId = "rbxassetid://72555931276894",  sellValue = 150, weight = 5,  rarity = "Epic"      },
+            { name = "Signed Jersey",     imageId = "rbxassetid://12014860760",     sellValue = 500, weight = 1,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
     -- RARE PACK  –  consumer electronics & gear
+    -- Dirt Bike ($5k) in $500 pack = 10x ratio → legendary weight 2
     -- =========================================================================
     {
         id          = "rare_pack",
@@ -251,16 +244,17 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Smartphone",      imageId = "rbxassetid://6034871478", sellValue = 100,  weight = 40, rarity = "Uncommon"  },
-            { name = "Gaming Chair",    imageId = "rbxassetid://6034871478", sellValue = 250,  weight = 30, rarity = "Rare"      },
-            { name = "Designer Sneakers",imageId = "rbxassetid://6034871478", sellValue = 600,  weight = 18, rarity = "Rare"      },
-            { name = "Gaming PC Setup", imageId = "rbxassetid://6034871478", sellValue = 1500, weight = 10, rarity = "Epic"      },
-            { name = "Dirt Bike",       imageId = "rbxassetid://6034871478", sellValue = 5000, weight = 2,  rarity = "Legendary" },
+            { name = "Smartphone",       imageId = "rbxassetid://2683970547",       sellValue = 100,  weight = 42, rarity = "Uncommon"  },
+            { name = "Gaming Chair",     imageId = "rbxassetid://116336938089060",  sellValue = 250,  weight = 22, rarity = "Rare"      },
+            { name = "Designer Sneakers",imageId = "rbxassetid://83420334893740",   sellValue = 600,  weight = 14, rarity = "Rare"      },
+            { name = "Gaming PC Setup",  imageId = "rbxassetid://79915626369911",   sellValue = 1500, weight = 8,  rarity = "Epic"      },
+            { name = "Dirt Bike",        imageId = "rbxassetid://80524967222557",   sellValue = 5000, weight = 2,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
     -- EPIC PACK  –  luxury goods and sports cars
+    -- Porsche ($25k) in $2k pack = 12.5x ratio → legendary weight 2
     -- =========================================================================
     {
         id          = "epic_pack",
@@ -272,16 +266,18 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Electric Scooter", imageId = "rbxassetid://6034871478", sellValue = 500,   weight = 35, rarity = "Rare"      },
-            { name = "MacBook Pro",      imageId = "rbxassetid://6034871478", sellValue = 1000,  weight = 30, rarity = "Rare"      },
-            { name = "Rolex Submariner", imageId = "rbxassetid://6034871478", sellValue = 3000,  weight = 20, rarity = "Epic"      },
-            { name = "Audemars Piguet",  imageId = "rbxassetid://6034871478", sellValue = 8000,  weight = 12, rarity = "Epic"      },
-            { name = "Porsche 911",      imageId = "rbxassetid://6034871478", sellValue = 25000, weight = 3,  rarity = "Legendary" },
+            { name = "Electric Scooter",  imageId = "rbxassetid://713583389",         sellValue = 500,   weight = 40, rarity = "Rare"      },
+            { name = "MackBook Pro",      imageId = "rbxassetid://18151538607",        sellValue = 1000,  weight = 28, rarity = "Rare"      },
+            { name = "Rolez Submariner",  imageId = "rbxassetid://113378471023632",    sellValue = 3000,  weight = 16, rarity = "Epic"      },
+            { name = "Audemares Pigeont", imageId = "rbxassetid://115622973392208",    sellValue = 8000,  weight = 8,  rarity = "Epic"      },
+            { name = "Porsche 911",       imageId = "rbxassetid://71089144666318",     sellValue = 25000, weight = 2,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
     -- LEGENDARY PACK  –  supercars, helicopters, yachts
+    -- Yacht ($250k) in $10k pack = 25x ratio → weight 1
+    -- Bugratti ($75k) = 7.5x → weight 8 (still feels rare but catchable)
     -- =========================================================================
     {
         id          = "legendary_pack",
@@ -293,16 +289,17 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Ferrari 458",         imageId = "rbxassetid://6034871478", sellValue = 5000,   weight = 30, rarity = "Rare"      },
-            { name = "Lamborghini Huracan", imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 28, rarity = "Epic"      },
-            { name = "Private Helicopter",  imageId = "rbxassetid://6034871478", sellValue = 30000,  weight = 22, rarity = "Epic"      },
-            { name = "Bugatti Chiron",      imageId = "rbxassetid://6034871478", sellValue = 75000,  weight = 15, rarity = "Legendary" },
-            { name = "Private Yacht",       imageId = "rbxassetid://6034871478", sellValue = 250000, weight = 5,  rarity = "Legendary" },
+            { name = "Rari 458",           imageId = "rbxassetid://6034871478", sellValue = 5000,   weight = 42, rarity = "Rare"      },
+            { name = "Lamborgher Huracam", imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 26, rarity = "Epic"      },
+            { name = "Private Helicopter", imageId = "rbxassetid://6034871478", sellValue = 30000,  weight = 18, rarity = "Epic"      },
+            { name = "Bugratti Chirton",   imageId = "rbxassetid://6034871478", sellValue = 75000,  weight = 8,  rarity = "Legendary" },
+            { name = "Private Yacht",      imageId = "rbxassetid://6034871478", sellValue = 250000, weight = 1,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
     -- GOLD PACK  –  gold jewellery and bullion
+    -- Gold Bar ($50k) in $3k pack = 17x ratio → weight 1
     -- =========================================================================
     {
         id          = "gold_pack",
@@ -314,16 +311,17 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Gold Ring",     imageId = "rbxassetid://6034871478", sellValue = 750,   weight = 40, rarity = "Uncommon"  },
-            { name = "Gold Bracelet", imageId = "rbxassetid://6034871478", sellValue = 2000,  weight = 30, rarity = "Rare"      },
-            { name = "Gold Necklace", imageId = "rbxassetid://6034871478", sellValue = 5000,  weight = 18, rarity = "Epic"      },
-            { name = "Gold Watch",    imageId = "rbxassetid://6034871478", sellValue = 15000, weight = 10, rarity = "Epic"      },
-            { name = "Gold Bar",      imageId = "rbxassetid://6034871478", sellValue = 50000, weight = 2,  rarity = "Legendary" },
+            { name = "Gold Ring",     imageId = "rbxassetid://6034871478", sellValue = 750,   weight = 46, rarity = "Uncommon"  },
+            { name = "Gold Bracelet", imageId = "rbxassetid://6034871478", sellValue = 2000,  weight = 28, rarity = "Rare"      },
+            { name = "Gold Necklace", imageId = "rbxassetid://6034871478", sellValue = 5000,  weight = 16, rarity = "Epic"      },
+            { name = "Gold Watch",    imageId = "rbxassetid://6034871478", sellValue = 15000, weight = 6,  rarity = "Epic"      },
+            { name = "Gold Bar",      imageId = "rbxassetid://6034871478", sellValue = 50000, weight = 1,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
     -- DIAMOND PACK  –  diamond jewellery
+    -- Diamond Crown ($120k) in $7.5k pack = 16x ratio → weight 2
     -- =========================================================================
     {
         id          = "diamond_pack",
@@ -335,41 +333,44 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Diamond Earrings", imageId = "rbxassetid://6034871478", sellValue = 2500,   weight = 35, rarity = "Rare"      },
-            { name = "Diamond Ring",     imageId = "rbxassetid://6034871478", sellValue = 6000,   weight = 28, rarity = "Rare"      },
-            { name = "Diamond Necklace", imageId = "rbxassetid://6034871478", sellValue = 15000,  weight = 20, rarity = "Epic"      },
-            { name = "Diamond Watch",    imageId = "rbxassetid://6034871478", sellValue = 40000,  weight = 12, rarity = "Legendary" },
-            { name = "Diamond Crown",    imageId = "rbxassetid://6034871478", sellValue = 120000, weight = 5,  rarity = "Legendary" },
+            { name = "Diamond Earrings", imageId = "rbxassetid://6034871478",           sellValue = 2500,   weight = 40, rarity = "Rare"      },
+            { name = "Diamond Ring",     imageId = "rbxassetid://6034871478",           sellValue = 6000,   weight = 28, rarity = "Rare"      },
+            { name = "Diamond Necklace", imageId = "rbxassetid://6034871478",           sellValue = 15000,  weight = 18, rarity = "Epic"      },
+            { name = "Diamond Watch",    imageId = "rbxassetid://135484245577291",      sellValue = 40000,  weight = 8,  rarity = "Legendary" },
+            { name = "Diamond Crown",    imageId = "rbxassetid://6034871478",           sellValue = 120000, weight = 2,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
     -- GENERATIONAL WEALTH  –  supercars, G-Wagons, heirloom watches
+    -- Rainbow AD ($300k) in $8k pack = 37.5x ratio → weight 1
+    -- Epics capped at 4/3, Rares at 8/6
     -- =========================================================================
     {
         id          = "genwealth_pack",
         name        = "Generational Wealth",
-        description = "G-Wagons, Ferraris, and watches worth more than your house.",
+        description = "C-Wagons, Ferraris, and watches worth more than your house.",
         imageId     = "rbxassetid://6034871478",
         price       = 8000,
         tier        = "GenWealth",
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Luxury Gold Pen Set",      imageId = "rbxassetid://6034871478", sellValue = 800,    weight = 20, rarity = "Common"    },
-            { name = "Carbon Fibre Wallet",      imageId = "rbxassetid://6034871478", sellValue = 600,    weight = 20, rarity = "Common"    },
-            { name = "AP Royal Oak Strap",       imageId = "rbxassetid://6034871478", sellValue = 3500,   weight = 13, rarity = "Uncommon"  },
-            { name = "G-Wagon Scale Model",      imageId = "rbxassetid://6034871478", sellValue = 2500,   weight = 13, rarity = "Uncommon"  },
-            { name = "Audemars Piguet Royal Oak",imageId = "rbxassetid://6034871478", sellValue = 18000,  weight = 8,  rarity = "Rare"      },
-            { name = "Ferrari SF90 Stradale",    imageId = "rbxassetid://6034871478", sellValue = 35000,  weight = 8,  rarity = "Rare"      },
-            { name = "Mercedes G63 AMG",         imageId = "rbxassetid://6034871478", sellValue = 55000,  weight = 5,  rarity = "Epic"      },
-            { name = "G-Wagon Brabus 800",       imageId = "rbxassetid://6034871478", sellValue = 90000,  weight = 5,  rarity = "Epic"      },
-            { name = "Rainbow AP Offshore",      imageId = "rbxassetid://6034871478", sellValue = 300000, weight = 3,  rarity = "Legendary" },
+            { name = "Luxury Gold Pen Set",       imageId = "rbxassetid://6034871478", sellValue = 800,    weight = 26, rarity = "Common"    },
+            { name = "Carbon Fibre Wallet",       imageId = "rbxassetid://6034871478", sellValue = 600,    weight = 22, rarity = "Common"    },
+            { name = "AD Royal Oak Strap",        imageId = "rbxassetid://6034871478", sellValue = 3500,   weight = 14, rarity = "Uncommon"  },
+            { name = "C-Wagon Scale Model",       imageId = "rbxassetid://6034871478", sellValue = 2500,   weight = 11, rarity = "Uncommon"  },
+            { name = "Audemares Pigeont Royal Oak",imageId = "rbxassetid://6034871478",sellValue = 18000,  weight = 8,  rarity = "Rare"      },
+            { name = "Rari SF90 Stradale",        imageId = "rbxassetid://6034871478", sellValue = 35000,  weight = 6,  rarity = "Rare"      },
+            { name = "Nercedes G63 AMG",          imageId = "rbxassetid://6034871478", sellValue = 55000,  weight = 4,  rarity = "Epic"      },
+            { name = "C-Wagon Drabus 800",        imageId = "rbxassetid://6034871478", sellValue = 90000,  weight = 3,  rarity = "Epic"      },
+            { name = "Rainbow AD Offshore",       imageId = "rbxassetid://6034871478", sellValue = 300000, weight = 1,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
-    -- BIG LEAGUE  –  tourbillon watches and Cadillac Escalades
+    -- BIG LEAGUE  –  tourbillon watches and Cadiolac Escalades
+    -- Astronomia ($180k) in $5k pack = 36x ratio → weight 1
     -- =========================================================================
     {
         id          = "bigleague_pack",
@@ -381,45 +382,48 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Designer Leather Briefcase",imageId = "rbxassetid://6034871478", sellValue = 700,    weight = 20, rarity = "Common"    },
-            { name = "Gold Tie Bar",              imageId = "rbxassetid://6034871478", sellValue = 500,    weight = 20, rarity = "Common"    },
-            { name = "Cadillac CT5 Watch",        imageId = "rbxassetid://6034871478", sellValue = 2500,   weight = 13, rarity = "Uncommon"  },
-            { name = "Solid Gold Cufflinks",      imageId = "rbxassetid://6034871478", sellValue = 2000,   weight = 13, rarity = "Uncommon"  },
-            { name = "Cadillac Escalade",         imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 8,  rarity = "Rare"      },
-            { name = "Jacob & Co Tourbillon",     imageId = "rbxassetid://6034871478", sellValue = 15000,  weight = 8,  rarity = "Rare"      },
-            { name = "Richard Mille RM 011",      imageId = "rbxassetid://6034871478", sellValue = 45000,  weight = 5,  rarity = "Epic"      },
-            { name = "Cadillac Escalade ESV Black",imageId="rbxassetid://6034871478",  sellValue = 38000,  weight = 5,  rarity = "Epic"      },
-            { name = "Jacob & Co Astronomia",     imageId = "rbxassetid://6034871478", sellValue = 180000, weight = 3,  rarity = "Legendary" },
+            { name = "Designer Leather Briefcase", imageId = "rbxassetid://6034871478", sellValue = 700,    weight = 26, rarity = "Common"    },
+            { name = "Gold Tie Bar",               imageId = "rbxassetid://6034871478", sellValue = 500,    weight = 22, rarity = "Common"    },
+            { name = "Cadiolac CT5 Watch",         imageId = "rbxassetid://6034871478", sellValue = 2500,   weight = 14, rarity = "Uncommon"  },
+            { name = "Solid Gold Cufflinks",       imageId = "rbxassetid://6034871478", sellValue = 2000,   weight = 11, rarity = "Uncommon"  },
+            { name = "Cadiolac Escalade",          imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 8,  rarity = "Rare"      },
+            { name = "Jacob & Ko Tourbillon",      imageId = "rbxassetid://6034871478", sellValue = 15000,  weight = 6,  rarity = "Rare"      },
+            { name = "Richard Million RM 011",     imageId = "rbxassetid://6034871478", sellValue = 45000,  weight = 4,  rarity = "Epic"      },
+            { name = "Cadiolac Escalade ESV Black",imageId = "rbxassetid://6034871478", sellValue = 38000,  weight = 3,  rarity = "Epic"      },
+            { name = "Jacob & Ko Astronomia",      imageId = "rbxassetid://6034871478", sellValue = 180000, weight = 1,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
-    -- DESIRE  –  jewellery, tourbillons, and BMWs
+    -- DESIRE  –  jewellery, tourbillons, and BMRs
+    -- Full VVS Set ($200k) in $6k pack = 33x ratio → weight 1
     -- =========================================================================
     {
         id          = "desire_pack",
         name        = "Desire",
-        description = "Exquisite jewellery, rare watches, and the BMW of your dreams.",
+        description = "Exquisite jewellery, rare watches, and the BMR of your dreams.",
         imageId     = "rbxassetid://6034871478",
         price       = 6000,
         tier        = "Desire",
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Pearl Necklace",          imageId = "rbxassetid://6034871478", sellValue = 800,    weight = 20, rarity = "Common"    },
-            { name = "Silver Diamond Pendant",  imageId = "rbxassetid://6034871478", sellValue = 600,    weight = 20, rarity = "Common"    },
-            { name = "Diamond Cluster Pendant", imageId = "rbxassetid://6034871478", sellValue = 4000,   weight = 13, rarity = "Uncommon"  },
-            { name = "BMW M8 Competition",      imageId = "rbxassetid://6034871478", sellValue = 10000,  weight = 13, rarity = "Uncommon"  },
-            { name = "Chopard Happy Diamonds",  imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 8,  rarity = "Rare"      },
-            { name = "BMW M5 CS",               imageId = "rbxassetid://6034871478", sellValue = 14000,  weight = 8,  rarity = "Rare"      },
-            { name = "Diamond Tennis Necklace", imageId = "rbxassetid://6034871478", sellValue = 40000,  weight = 5,  rarity = "Epic"      },
-            { name = "Jacob & Co Fleur de Jardin",imageId="rbxassetid://6034871478", sellValue = 50000,  weight = 5,  rarity = "Epic"      },
-            { name = "Full VVS Diamond Set",    imageId = "rbxassetid://6034871478", sellValue = 200000, weight = 3,  rarity = "Legendary" },
+            { name = "Pearl Necklace",             imageId = "rbxassetid://6034871478", sellValue = 800,    weight = 26, rarity = "Common"    },
+            { name = "Silver Diamond Pendant",     imageId = "rbxassetid://6034871478", sellValue = 600,    weight = 22, rarity = "Common"    },
+            { name = "Diamond Cluster Pendant",    imageId = "rbxassetid://6034871478", sellValue = 4000,   weight = 14, rarity = "Uncommon"  },
+            { name = "BMR M8 Competition",         imageId = "rbxassetid://6034871478", sellValue = 10000,  weight = 11, rarity = "Uncommon"  },
+            { name = "Shopard Happy Diamonds",     imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 8,  rarity = "Rare"      },
+            { name = "BMR M5 CS",                  imageId = "rbxassetid://6034871478", sellValue = 14000,  weight = 6,  rarity = "Rare"      },
+            { name = "Diamond Tennis Necklace",    imageId = "rbxassetid://6034871478", sellValue = 40000,  weight = 4,  rarity = "Epic"      },
+            { name = "Jacob & Ko Fleur de Jardin", imageId = "rbxassetid://6034871478", sellValue = 50000,  weight = 3,  rarity = "Epic"      },
+            { name = "Full VVS Diamond Set",       imageId = "rbxassetid://6034871478", sellValue = 200000, weight = 1,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
     -- BRAVERY  –  luxury SUVs, vintage whisky, rare flowers
+    -- Mountain Estate ($120k) in $3.5k pack = 34x ratio — STEEPEST curve here
+    -- Epics at 3/2, Rares at 7/5, Legendaries at 1
     -- =========================================================================
     {
         id          = "bravery_pack",
@@ -431,40 +435,41 @@ PackConfig.Packs = {
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Rare Orchid Arrangement",  imageId = "rbxassetid://6034871478", sellValue = 400,    weight = 20, rarity = "Common"    },
-            { name = "Premium Whisky Bottle",    imageId = "rbxassetid://6034871478", sellValue = 300,    weight = 20, rarity = "Common"    },
-            { name = "Whisky Barrel (25 yr)",    imageId = "rbxassetid://6034871478", sellValue = 2000,   weight = 13, rarity = "Uncommon"  },
-            { name = "Exotic Flower Collection", imageId = "rbxassetid://6034871478", sellValue = 1500,   weight = 13, rarity = "Uncommon"  },
-            { name = "Porsche Cayenne Turbo",    imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 8,  rarity = "Rare"      },
-            { name = "Macallan 30yr Collection", imageId = "rbxassetid://6034871478", sellValue = 8000,   weight = 8,  rarity = "Rare"      },
-            { name = "Lamborghini Urus",         imageId = "rbxassetid://6034871478", sellValue = 28000,  weight = 5,  rarity = "Epic"      },
-            { name = "Macallan 50yr Red Collection",imageId="rbxassetid://6034871478",sellValue = 22000,  weight = 5,  rarity = "Epic"      },
-            { name = "Private Mountain Estate",  imageId = "rbxassetid://6034871478", sellValue = 120000, weight = 3,  rarity = "Legendary" },
+            { name = "Rare Orchid Arrangement",       imageId = "rbxassetid://6034871478", sellValue = 400,    weight = 30, rarity = "Common"    },
+            { name = "Premium Cola Bottle",           imageId = "rbxassetid://6034871478", sellValue = 300,    weight = 26, rarity = "Common"    },
+            { name = "Cola Barrel (25 yr)",           imageId = "rbxassetid://6034871478", sellValue = 2000,   weight = 14, rarity = "Uncommon"  },
+            { name = "Exotic Flower Collection",      imageId = "rbxassetid://6034871478", sellValue = 1500,   weight = 11, rarity = "Uncommon"  },
+            { name = "Porscha Cayenne Turbo",         imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 7,  rarity = "Rare"      },
+            { name = "Macalolan 30yr Collection",     imageId = "rbxassetid://6034871478", sellValue = 8000,   weight = 5,  rarity = "Rare"      },
+            { name = "Lamborgher Urus",               imageId = "rbxassetid://6034871478", sellValue = 28000,  weight = 3,  rarity = "Epic"      },
+            { name = "Macalolan 50yr Red Collection", imageId = "rbxassetid://6034871478", sellValue = 22000,  weight = 2,  rarity = "Epic"      },
+            { name = "Private Mountain Estate",       imageId = "rbxassetid://6034871478", sellValue = 120000, weight = 1,  rarity = "Legendary" },
         },
     },
 
     -- =========================================================================
-    -- ROLLS ROYCE  –  Cullinans, Ghosts, rainbow Rolexes
+    -- ROLLS ROISCE  –  Cullinans, Ghosts, rainbow Rolexes
+    -- Cullinan ($350k) in $12k pack = 29x ratio → weight 1
     -- =========================================================================
     {
         id          = "rollsroyce_pack",
         name        = "Rolls Royce",
-        description = "The pinnacle of luxury. Rainbow Rolexes and Rolls Royces.",
+        description = "The pinnacle of luxury. Rainbow Rolexes and Rolls Roisces.",
         imageId     = "rbxassetid://6034871478",
         price       = 12000,
         tier        = "RollsRoyce",
         cooldown    = 0,
         enabled     = true,
         rewards     = {
-            { name = "Rolls Royce Keychain",      imageId = "rbxassetid://6034871478", sellValue = 1200,   weight = 20, rarity = "Common"    },
-            { name = "RR Bespoke Umbrella",       imageId = "rbxassetid://6034871478", sellValue = 900,    weight = 20, rarity = "Common"    },
-            { name = "Rolls Royce Ghost Perfume", imageId = "rbxassetid://6034871478", sellValue = 4000,   weight = 13, rarity = "Uncommon"  },
-            { name = "RR Bespoke Accessories Kit",imageId = "rbxassetid://6034871478", sellValue = 5000,   weight = 13, rarity = "Uncommon"  },
-            { name = "Rolex Daytona Rainbow",     imageId = "rbxassetid://6034871478", sellValue = 35000,  weight = 8,  rarity = "Rare"      },
-            { name = "Rolls Royce Ghost",         imageId = "rbxassetid://6034871478", sellValue = 55000,  weight = 8,  rarity = "Rare"      },
-            { name = "Rolls Royce Wraith",        imageId = "rbxassetid://6034871478", sellValue = 90000,  weight = 5,  rarity = "Epic"      },
-            { name = "Rainbow AP Royal Oak",      imageId = "rbxassetid://6034871478", sellValue = 75000,  weight = 5,  rarity = "Epic"      },
-            { name = "Rolls Royce Cullinan",      imageId = "rbxassetid://6034871478", sellValue = 350000, weight = 3,  rarity = "Legendary" },
+            { name = "Rolls Roisce Keychain",      imageId = "rbxassetid://6034871478", sellValue = 1200,   weight = 24, rarity = "Common"    },
+            { name = "RR Bespoke Umbrella",        imageId = "rbxassetid://6034871478", sellValue = 900,    weight = 20, rarity = "Common"    },
+            { name = "Rolls Roisce Ghost Perfume", imageId = "rbxassetid://6034871478", sellValue = 4000,   weight = 14, rarity = "Uncommon"  },
+            { name = "RR Bespoke Accessories Kit", imageId = "rbxassetid://6034871478", sellValue = 5000,   weight = 11, rarity = "Uncommon"  },
+            { name = "Rolez Daytona Rainbow",      imageId = "rbxassetid://6034871478", sellValue = 35000,  weight = 8,  rarity = "Rare"      },
+            { name = "Rolls Roisce Ghost",         imageId = "rbxassetid://6034871478", sellValue = 55000,  weight = 6,  rarity = "Rare"      },
+            { name = "Rolls Roisce Wraith",        imageId = "rbxassetid://6034871478", sellValue = 90000,  weight = 5,  rarity = "Epic"      },
+            { name = "Rainbow AP Royal Oak",       imageId = "rbxassetid://6034871478", sellValue = 75000,  weight = 4,  rarity = "Epic"      },
+            { name = "Rolls Roisce Cullinan",      imageId = "rbxassetid://6034871478", sellValue = 350000, weight = 1,  rarity = "Legendary" },
         },
     },
 }
