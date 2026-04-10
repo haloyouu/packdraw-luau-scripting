@@ -229,11 +229,16 @@ end
 
 -- =========================================================================
 -- Inventory FLEX callback
+-- stopFlexBtn is forward-declared here; assigned in the Bottom bar section.
+-- Lua closures capture the variable binding, so by the time the callback
+-- fires the variable will already hold the button instance.
 -- =========================================================================
+local stopFlexBtn   -- forward declaration
+
 inventory.onFlexItem = function(itemId, item)
     FlexItemEvt:FireServer(item.name, item.rarity, item.sellValue)
     isFlexing = true
-    stopFlexBtn.Visible = true
+    if stopFlexBtn then stopFlexBtn.Visible = true end
     inventory:hide()
 end
 
@@ -326,7 +331,8 @@ invBtn.MouseButton1Click:Connect(function()
 end)
 
 -- Stop Flexing button (above bar, hidden until FLEX active)
-local stopFlexBtn = Instance.new("TextButton")
+-- Assigns the forward-declared upvalue captured by inventory.onFlexItem above.
+stopFlexBtn = Instance.new("TextButton")
 stopFlexBtn.Size             = UDim2.fromOffset(180, 44)
 stopFlexBtn.Position         = UDim2.new(0.5, -90, 1, -126)
 stopFlexBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)

@@ -53,6 +53,7 @@ function OpeningUI:_build()
     sg.Name           = "PackOpeningGui"
     sg.ResetOnSpawn   = false
     sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sg.DisplayOrder   = 10   -- above BottomBarGui (0) so sell/keep buttons win input
     sg.Enabled        = false
     sg.Parent         = self.playerGui
     self.screenGui    = sg
