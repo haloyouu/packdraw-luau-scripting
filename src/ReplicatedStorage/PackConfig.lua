@@ -157,6 +157,42 @@ PackConfig.PackTiers = {
         glowColor      = Color3.fromRGB(220, 248, 255),
         textColor      = Color3.fromRGB(  0,  30,  55),
     },
+    -- ── Image-based case tiers ────────────────────────────────────────────
+    GenWealth = {
+        displayName    = "GENERATIONAL WEALTH",
+        primaryColor   = Color3.fromRGB(158,  18,  28),
+        secondaryColor = Color3.fromRGB( 88,   8,  14),
+        glowColor      = Color3.fromRGB(255,  58,  58),
+        textColor      = Color3.fromRGB(255, 220, 220),
+    },
+    BigLeague = {
+        displayName    = "BIG LEAGUE",
+        primaryColor   = Color3.fromRGB(182, 146,  26),
+        secondaryColor = Color3.fromRGB( 98,  76,  10),
+        glowColor      = Color3.fromRGB(255, 218,  72),
+        textColor      = Color3.fromRGB( 20,  14,   0),
+    },
+    Desire = {
+        displayName    = "DESIRE",
+        primaryColor   = Color3.fromRGB(218,  74,  16),
+        secondaryColor = Color3.fromRGB(132,  36,   8),
+        glowColor      = Color3.fromRGB(255, 142,  48),
+        textColor      = Color3.fromRGB(255, 238, 220),
+    },
+    Bravery = {
+        displayName    = "BRAVERY",
+        primaryColor   = Color3.fromRGB( 16, 136, 156),
+        secondaryColor = Color3.fromRGB(  8,  76,  96),
+        glowColor      = Color3.fromRGB( 52, 224, 244),
+        textColor      = Color3.fromRGB(220, 255, 255),
+    },
+    RollsRoyce = {
+        displayName    = "ROLLS ROYCE",
+        primaryColor   = Color3.fromRGB(202, 202, 218),
+        secondaryColor = Color3.fromRGB(128, 128, 148),
+        glowColor      = Color3.fromRGB(245, 245, 255),
+        textColor      = Color3.fromRGB( 18,  18,  38),
+    },
 }
 
 -- =============================================================================
@@ -304,6 +340,131 @@ PackConfig.Packs = {
             { name = "Diamond Necklace", imageId = "rbxassetid://6034871478", sellValue = 15000,  weight = 20, rarity = "Epic"      },
             { name = "Diamond Watch",    imageId = "rbxassetid://6034871478", sellValue = 40000,  weight = 12, rarity = "Legendary" },
             { name = "Diamond Crown",    imageId = "rbxassetid://6034871478", sellValue = 120000, weight = 5,  rarity = "Legendary" },
+        },
+    },
+
+    -- =========================================================================
+    -- GENERATIONAL WEALTH  –  supercars, G-Wagons, heirloom watches
+    -- =========================================================================
+    {
+        id          = "genwealth_pack",
+        name        = "Generational Wealth",
+        description = "G-Wagons, Ferraris, and watches worth more than your house.",
+        imageId     = "rbxassetid://6034871478",
+        price       = 8000,
+        tier        = "GenWealth",
+        cooldown    = 0,
+        enabled     = true,
+        rewards     = {
+            { name = "Luxury Gold Pen Set",      imageId = "rbxassetid://6034871478", sellValue = 800,    weight = 20, rarity = "Common"    },
+            { name = "Carbon Fibre Wallet",      imageId = "rbxassetid://6034871478", sellValue = 600,    weight = 20, rarity = "Common"    },
+            { name = "AP Royal Oak Strap",       imageId = "rbxassetid://6034871478", sellValue = 3500,   weight = 13, rarity = "Uncommon"  },
+            { name = "G-Wagon Scale Model",      imageId = "rbxassetid://6034871478", sellValue = 2500,   weight = 13, rarity = "Uncommon"  },
+            { name = "Audemars Piguet Royal Oak",imageId = "rbxassetid://6034871478", sellValue = 18000,  weight = 8,  rarity = "Rare"      },
+            { name = "Ferrari SF90 Stradale",    imageId = "rbxassetid://6034871478", sellValue = 35000,  weight = 8,  rarity = "Rare"      },
+            { name = "Mercedes G63 AMG",         imageId = "rbxassetid://6034871478", sellValue = 55000,  weight = 5,  rarity = "Epic"      },
+            { name = "G-Wagon Brabus 800",       imageId = "rbxassetid://6034871478", sellValue = 90000,  weight = 5,  rarity = "Epic"      },
+            { name = "Rainbow AP Offshore",      imageId = "rbxassetid://6034871478", sellValue = 300000, weight = 3,  rarity = "Legendary" },
+        },
+    },
+
+    -- =========================================================================
+    -- BIG LEAGUE  –  tourbillon watches and Cadillac Escalades
+    -- =========================================================================
+    {
+        id          = "bigleague_pack",
+        name        = "Big League",
+        description = "Elite tourbillons and the biggest SUVs on the road.",
+        imageId     = "rbxassetid://6034871478",
+        price       = 5000,
+        tier        = "BigLeague",
+        cooldown    = 0,
+        enabled     = true,
+        rewards     = {
+            { name = "Designer Leather Briefcase",imageId = "rbxassetid://6034871478", sellValue = 700,    weight = 20, rarity = "Common"    },
+            { name = "Gold Tie Bar",              imageId = "rbxassetid://6034871478", sellValue = 500,    weight = 20, rarity = "Common"    },
+            { name = "Cadillac CT5 Watch",        imageId = "rbxassetid://6034871478", sellValue = 2500,   weight = 13, rarity = "Uncommon"  },
+            { name = "Solid Gold Cufflinks",      imageId = "rbxassetid://6034871478", sellValue = 2000,   weight = 13, rarity = "Uncommon"  },
+            { name = "Cadillac Escalade",         imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 8,  rarity = "Rare"      },
+            { name = "Jacob & Co Tourbillon",     imageId = "rbxassetid://6034871478", sellValue = 15000,  weight = 8,  rarity = "Rare"      },
+            { name = "Richard Mille RM 011",      imageId = "rbxassetid://6034871478", sellValue = 45000,  weight = 5,  rarity = "Epic"      },
+            { name = "Cadillac Escalade ESV Black",imageId="rbxassetid://6034871478",  sellValue = 38000,  weight = 5,  rarity = "Epic"      },
+            { name = "Jacob & Co Astronomia",     imageId = "rbxassetid://6034871478", sellValue = 180000, weight = 3,  rarity = "Legendary" },
+        },
+    },
+
+    -- =========================================================================
+    -- DESIRE  –  jewellery, tourbillons, and BMWs
+    -- =========================================================================
+    {
+        id          = "desire_pack",
+        name        = "Desire",
+        description = "Exquisite jewellery, rare watches, and the BMW of your dreams.",
+        imageId     = "rbxassetid://6034871478",
+        price       = 6000,
+        tier        = "Desire",
+        cooldown    = 0,
+        enabled     = true,
+        rewards     = {
+            { name = "Pearl Necklace",          imageId = "rbxassetid://6034871478", sellValue = 800,    weight = 20, rarity = "Common"    },
+            { name = "Silver Diamond Pendant",  imageId = "rbxassetid://6034871478", sellValue = 600,    weight = 20, rarity = "Common"    },
+            { name = "Diamond Cluster Pendant", imageId = "rbxassetid://6034871478", sellValue = 4000,   weight = 13, rarity = "Uncommon"  },
+            { name = "BMW M8 Competition",      imageId = "rbxassetid://6034871478", sellValue = 10000,  weight = 13, rarity = "Uncommon"  },
+            { name = "Chopard Happy Diamonds",  imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 8,  rarity = "Rare"      },
+            { name = "BMW M5 CS",               imageId = "rbxassetid://6034871478", sellValue = 14000,  weight = 8,  rarity = "Rare"      },
+            { name = "Diamond Tennis Necklace", imageId = "rbxassetid://6034871478", sellValue = 40000,  weight = 5,  rarity = "Epic"      },
+            { name = "Jacob & Co Fleur de Jardin",imageId="rbxassetid://6034871478", sellValue = 50000,  weight = 5,  rarity = "Epic"      },
+            { name = "Full VVS Diamond Set",    imageId = "rbxassetid://6034871478", sellValue = 200000, weight = 3,  rarity = "Legendary" },
+        },
+    },
+
+    -- =========================================================================
+    -- BRAVERY  –  luxury SUVs, vintage whisky, rare flowers
+    -- =========================================================================
+    {
+        id          = "bravery_pack",
+        name        = "Bravery",
+        description = "Rare whisky, orchid collections, and bold SUVs for the fearless.",
+        imageId     = "rbxassetid://6034871478",
+        price       = 3500,
+        tier        = "Bravery",
+        cooldown    = 0,
+        enabled     = true,
+        rewards     = {
+            { name = "Rare Orchid Arrangement",  imageId = "rbxassetid://6034871478", sellValue = 400,    weight = 20, rarity = "Common"    },
+            { name = "Premium Whisky Bottle",    imageId = "rbxassetid://6034871478", sellValue = 300,    weight = 20, rarity = "Common"    },
+            { name = "Whisky Barrel (25 yr)",    imageId = "rbxassetid://6034871478", sellValue = 2000,   weight = 13, rarity = "Uncommon"  },
+            { name = "Exotic Flower Collection", imageId = "rbxassetid://6034871478", sellValue = 1500,   weight = 13, rarity = "Uncommon"  },
+            { name = "Porsche Cayenne Turbo",    imageId = "rbxassetid://6034871478", sellValue = 12000,  weight = 8,  rarity = "Rare"      },
+            { name = "Macallan 30yr Collection", imageId = "rbxassetid://6034871478", sellValue = 8000,   weight = 8,  rarity = "Rare"      },
+            { name = "Lamborghini Urus",         imageId = "rbxassetid://6034871478", sellValue = 28000,  weight = 5,  rarity = "Epic"      },
+            { name = "Macallan 50yr Red Collection",imageId="rbxassetid://6034871478",sellValue = 22000,  weight = 5,  rarity = "Epic"      },
+            { name = "Private Mountain Estate",  imageId = "rbxassetid://6034871478", sellValue = 120000, weight = 3,  rarity = "Legendary" },
+        },
+    },
+
+    -- =========================================================================
+    -- ROLLS ROYCE  –  Cullinans, Ghosts, rainbow Rolexes
+    -- =========================================================================
+    {
+        id          = "rollsroyce_pack",
+        name        = "Rolls Royce",
+        description = "The pinnacle of luxury. Rainbow Rolexes and Rolls Royces.",
+        imageId     = "rbxassetid://6034871478",
+        price       = 12000,
+        tier        = "RollsRoyce",
+        cooldown    = 0,
+        enabled     = true,
+        rewards     = {
+            { name = "Rolls Royce Keychain",      imageId = "rbxassetid://6034871478", sellValue = 1200,   weight = 20, rarity = "Common"    },
+            { name = "RR Bespoke Umbrella",       imageId = "rbxassetid://6034871478", sellValue = 900,    weight = 20, rarity = "Common"    },
+            { name = "Rolls Royce Ghost Perfume", imageId = "rbxassetid://6034871478", sellValue = 4000,   weight = 13, rarity = "Uncommon"  },
+            { name = "RR Bespoke Accessories Kit",imageId = "rbxassetid://6034871478", sellValue = 5000,   weight = 13, rarity = "Uncommon"  },
+            { name = "Rolex Daytona Rainbow",     imageId = "rbxassetid://6034871478", sellValue = 35000,  weight = 8,  rarity = "Rare"      },
+            { name = "Rolls Royce Ghost",         imageId = "rbxassetid://6034871478", sellValue = 55000,  weight = 8,  rarity = "Rare"      },
+            { name = "Rolls Royce Wraith",        imageId = "rbxassetid://6034871478", sellValue = 90000,  weight = 5,  rarity = "Epic"      },
+            { name = "Rainbow AP Royal Oak",      imageId = "rbxassetid://6034871478", sellValue = 75000,  weight = 5,  rarity = "Epic"      },
+            { name = "Rolls Royce Cullinan",      imageId = "rbxassetid://6034871478", sellValue = 350000, weight = 3,  rarity = "Legendary" },
         },
     },
 }
