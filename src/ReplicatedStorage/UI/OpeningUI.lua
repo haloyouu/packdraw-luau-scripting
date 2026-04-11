@@ -345,13 +345,13 @@ function OpeningUI:_build()
     self.commentaryLbl = commentaryLbl
 
     -- ── SELL / KEEP buttons ─────────────────────────────────────────────────
-    local function makeBtn(text, colorTop, colorBot, xPos, xSize)
+    local function makeBtn(text, colorTop, colorBot, textColor, xPos, xSize)
         local btn = Instance.new("TextButton")
         btn.Size             = UDim2.new(xSize, -12, 0, 50)
         btn.Position         = UDim2.new(xPos, 6, 1, -66)
         btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         btn.Text             = text
-        btn.TextColor3       = TEXT_W
+        btn.TextColor3       = textColor
         btn.Font             = Enum.Font.GothamBold
         btn.TextSize         = 16
         btn.BorderSizePixel  = 0
@@ -370,9 +370,11 @@ function OpeningUI:_build()
     end
 
     local sellBtn, sellGrad = makeBtn("SELL",
-        Color3.fromRGB(55, 210, 105), Color3.fromRGB(25, 130, 60), 0, 0.5)
+        Color3.fromRGB(55, 210, 105), Color3.fromRGB(25, 130, 60),
+        Color3.fromRGB(8, 45, 18), 0, 0.5)
     local keepBtn, keepGrad = makeBtn("KEEP",
-        Color3.fromRGB(70, 95, 210),  Color3.fromRGB(35, 50, 140), 0.5, 0.5)
+        Color3.fromRGB(70, 95, 210),  Color3.fromRGB(35, 50, 140),
+        Color3.fromRGB(12, 18, 62), 0.5, 0.5)
     self.sellBtn  = sellBtn
     self.keepBtn  = keepBtn
 
