@@ -6,7 +6,8 @@ local Players            = game:GetService("Players")
 local ReplicatedStorage  = game:GetService("ReplicatedStorage")
 local DataStoreService   = game:GetService("DataStoreService")
 
-local PackModule = require(ReplicatedStorage:WaitForChild("PackModule"))
+local PackModule     = require(ReplicatedStorage:WaitForChild("PackModule"))
+local BusinessConfig = require(ReplicatedStorage:WaitForChild("BusinessConfig"))
 
 -- ---------------------------------------------------------------------------
 -- Create all Remotes (server owns them; clients WaitForChild)
@@ -22,32 +23,38 @@ local function makeRE(name)
     local re = Instance.new("RemoteEvent");    re.Name = name; re.Parent = Remotes; return re
 end
 
-local OpenPackFunction   = makeRF("OpenPack")
-local SellItemFunction   = makeRF("SellItem")
-local GetDataFunction    = makeRF("GetData")
-local ClaimWorkFunction  = makeRF("ClaimWork")  -- 60 s cooldown earn
-local UpdateBalanceEvent = makeRE("UpdateBalance")
-local FlexItemEvent      = makeRE("FlexItem")   -- client → server: show billboard
-local StopFlexEvent      = makeRE("StopFlex")   -- client → server: hide billboard
+local OpenPackFunction    = makeRF("OpenPack")
+local SellItemFunction    = makeRF("SellItem")
+local GetDataFunction     = makeRF("GetData")
+local ClaimWorkFunction   = makeRF("ClaimWork")
+local BuyBusinessFunction = makeRF("BuyBusiness")
+local UpdateBalanceEvent  = makeRE("UpdateBalance")
+local FlexItemEvent       = makeRE("FlexItem")
+local StopFlexEvent       = makeRE("StopFlex")
 
 -- ---------------------------------------------------------------------------
 local Store = DataStoreService:GetDataStore("PackDraw_v2")
 local cache = {}
 
-local WORK_COOLDOWN  = 60      -- seconds between Work claims
-local DAILY_AMOUNT   = 1000   -- daily login bonus
+local WORK_COOLDOWN  = 60
 local WORK_MIN       = 150
 local WORK_MAX       = 400
 
+-- Streak rewards for days 1-7; day 7 repeats if they keep the streak going
+local STREAK_REWARDS = { 500, 1000, 2000, 3500, 5000, 8000, 15000 }
+
 local function defaultData()
     return {
-        balance       = 1000,
-        cooldowns     = {},   -- [packId] = timestamp
-        inventory     = {},   -- [tostring(itemId)] = { name, imageId, sellValue, rarity }
-        nextItemId    = 0,
-        totalOpened   = 0,
-        lastWork      = 0,    -- os.time() of last Work claim
-        lastDailyBonus= 0,    -- os.time() of last daily bonus
+        balance          = 1000,
+        cooldowns        = {},
+        inventory        = {},
+        nextItemId       = 0,
+        totalOpened      = 0,
+        lastWork         = 0,
+        lastDailyBonus   = 0,
+        streakDays       = 0,
+        businesses       = {},   -- [businessId] = true when owned
+        lastPassiveCalc  = 0,    -- os.time() at last offline-income calculation
     }
 end
 
@@ -65,17 +72,48 @@ local function loadData(player)
     local ls   = Instance.new("Folder"); ls.Name = "leaderstats"; ls.Parent = player
     local cash = Instance.new("IntValue"); cash.Name = "Cash"; cash.Value = data.balance; cash.Parent = ls
 
-    -- Daily login bonus: award once per 24 hours on join
-    local lastBonus = data.lastDailyBonus or 0
-    if os.time() - lastBonus >= 86400 then
-        data.balance        += DAILY_AMOUNT
+    -- ── Offline passive income ─────────────────────────────────────────────
+    -- lastPassiveCalc = 0 means first ever login; start the clock, no payout.
+    -- PlayerRemoving stamps it on logout, so elapsed = true offline time.
+    local lastCalc = data.lastPassiveCalc or 0
+    if lastCalc == 0 then
+        data.lastPassiveCalc = os.time()
+    else
+        local offlineSecs   = math.min(os.time() - lastCalc,
+                                       BusinessConfig.MAX_OFFLINE_HOURS * 3600)
+        local hourlyRate    = BusinessConfig.getHourlyRate(data.businesses or {})
+        local offlineEarned = math.floor((offlineSecs / 3600) * hourlyRate)
+        data.lastPassiveCalc = os.time()
+        if offlineEarned > 0 then
+            data.balance += offlineEarned
+            task.delay(5, function()
+                if player and player.Parent then
+                    syncBalance(player)
+                    UpdateBalanceEvent:FireClient(player, data.balance, "offline", offlineEarned)
+                end
+            end)
+        end
+    end
+
+    -- ── Daily streak bonus ─────────────────────────────────────────────────
+    local lastBonus     = data.lastDailyBonus or 0
+    local secsSinceLast = os.time() - lastBonus
+    if secsSinceLast >= 86400 then
+        -- Within 48 h → maintain streak; beyond → reset
+        if secsSinceLast < 172800 then
+            data.streakDays = math.min((data.streakDays or 0) + 1, 7)
+        else
+            data.streakDays = 1
+        end
+        local streakAmt     = STREAK_REWARDS[data.streakDays] or STREAK_REWARDS[1]
+        data.balance        += streakAmt
         data.lastDailyBonus  = os.time()
         task.spawn(saveData, player)
-        -- Signal the client after a short delay so the UI is ready
         task.delay(3, function()
             if player and player.Parent then
                 syncBalance(player)
-                UpdateBalanceEvent:FireClient(player, data.balance, "daily", DAILY_AMOUNT)
+                UpdateBalanceEvent:FireClient(
+                    player, data.balance, "streak", streakAmt, data.streakDays)
             end
         end)
     end
@@ -103,9 +141,16 @@ end
 GetDataFunction.OnServerInvoke = function(player)
     local data = cache[player.UserId]
     if not data then return nil end
-    return { balance = data.balance, cooldowns = data.cooldowns,
-             inventory = data.inventory, totalOpened = data.totalOpened,
-             lastWork  = data.lastWork  or 0 }
+    return {
+        balance    = data.balance,
+        cooldowns  = data.cooldowns,
+        inventory  = data.inventory,
+        totalOpened= data.totalOpened,
+        lastWork   = data.lastWork   or 0,
+        businesses = data.businesses or {},
+        streakDays = data.streakDays or 0,
+        hourlyRate = BusinessConfig.getHourlyRate(data.businesses or {}),
+    }
 end
 
 -- ---------------------------------------------------------------------------
@@ -131,6 +176,38 @@ ClaimWorkFunction.OnServerInvoke = function(player)
 end
 
 -- ---------------------------------------------------------------------------
+BuyBusinessFunction.OnServerInvoke = function(player, businessId)
+    if type(businessId) ~= "string" then
+        return { success = false, reason = "Invalid request." }
+    end
+    local data = cache[player.UserId]
+    if not data then return { success = false, reason = "Data not ready." } end
+
+    local business = BusinessConfig.getById(businessId)
+    if not business then return { success = false, reason = "Business not found." } end
+
+    data.businesses = data.businesses or {}
+    if data.businesses[businessId] then
+        return { success = false, reason = "Already owned." }
+    end
+    if data.balance < business.cost then
+        return { success = false, reason = "Not enough cash." }
+    end
+
+    data.balance -= business.cost
+    data.businesses[businessId] = true
+
+    syncBalance(player)
+    task.spawn(saveData, player)
+
+    return {
+        success    = true,
+        newBalance = data.balance,
+        hourlyRate = BusinessConfig.getHourlyRate(data.businesses),
+    }
+end
+
+-- ---------------------------------------------------------------------------
 OpenPackFunction.OnServerInvoke = function(player, packId)
     if type(packId) ~= "string" then
         return { success = false, reason = "Invalid request." }
@@ -149,7 +226,6 @@ OpenPackFunction.OnServerInvoke = function(player, packId)
 
     local reward = PackModule.rollReward(pack)
 
-    -- Always store inventory with STRING keys so DataStore round-trips are safe
     data.nextItemId = (data.nextItemId or 0) + 1
     local itemId = tostring(data.nextItemId)
     data.inventory[itemId] = {
@@ -166,7 +242,7 @@ OpenPackFunction.OnServerInvoke = function(player, packId)
     return {
         success = true,
         item = {
-            id        = itemId,          -- string, always
+            id        = itemId,
             name      = reward.name,
             imageId   = reward.imageId,
             sellValue = reward.sellValue,
@@ -177,10 +253,7 @@ OpenPackFunction.OnServerInvoke = function(player, packId)
 end
 
 -- ---------------------------------------------------------------------------
--- FIX: accept string OR number itemId (DataStore converts numeric keys to strings)
--- ---------------------------------------------------------------------------
 SellItemFunction.OnServerInvoke = function(player, itemId)
-    -- Normalise: whatever the client sends, turn it into the string key we store
     local strId = tostring(itemId)
     if strId == "nil" or strId == "" then
         return { success = false, reason = "Invalid item." }
@@ -204,7 +277,7 @@ SellItemFunction.OnServerInvoke = function(player, itemId)
 end
 
 -- ---------------------------------------------------------------------------
--- FLEX: create a BillboardGui on the player's character (replicates to all)
+-- FLEX billboard
 -- ---------------------------------------------------------------------------
 FlexItemEvent.OnServerEvent:Connect(function(player, itemName, rarityKey, sellValue)
     local char = player.Character
@@ -226,14 +299,13 @@ FlexItemEvent.OnServerEvent:Connect(function(player, itemName, rarityKey, sellVa
     bb.Parent         = hrp
 
     local bg = Instance.new("Frame")
-    bg.Size                    = UDim2.fromScale(1, 1)
-    bg.BackgroundColor3        = Color3.fromRGB(10, 10, 22)
-    bg.BackgroundTransparency  = 0.15
-    bg.BorderSizePixel         = 0
-    bg.Parent                  = bb
+    bg.Size                   = UDim2.fromScale(1, 1)
+    bg.BackgroundColor3       = Color3.fromRGB(10, 10, 22)
+    bg.BackgroundTransparency = 0.15
+    bg.BorderSizePixel        = 0
+    bg.Parent                 = bb
     Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 10)
 
-    -- Coloured left accent bar
     local bar = Instance.new("Frame")
     bar.Size            = UDim2.new(0, 4, 1, 0)
     bar.BackgroundColor3= rarityInfo.color
@@ -242,27 +314,27 @@ FlexItemEvent.OnServerEvent:Connect(function(player, itemName, rarityKey, sellVa
     Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 10)
 
     local nameLbl = Instance.new("TextLabel")
-    nameLbl.Size                 = UDim2.new(1, -14, 0, 36)
-    nameLbl.Position             = UDim2.new(0, 10, 0, 4)
-    nameLbl.BackgroundTransparency = 1
-    nameLbl.Text                 = itemName
-    nameLbl.TextColor3           = rarityInfo.color
-    nameLbl.Font                 = Enum.Font.GothamBold
-    nameLbl.TextSize             = 14
-    nameLbl.TextWrapped          = true
-    nameLbl.TextXAlignment       = Enum.TextXAlignment.Left
-    nameLbl.Parent               = bg
+    nameLbl.Size                  = UDim2.new(1, -14, 0, 36)
+    nameLbl.Position              = UDim2.new(0, 10, 0, 4)
+    nameLbl.BackgroundTransparency= 1
+    nameLbl.Text                  = itemName
+    nameLbl.TextColor3            = rarityInfo.color
+    nameLbl.Font                  = Enum.Font.GothamBold
+    nameLbl.TextSize              = 14
+    nameLbl.TextWrapped           = true
+    nameLbl.TextXAlignment        = Enum.TextXAlignment.Left
+    nameLbl.Parent                = bg
 
     local valLbl = Instance.new("TextLabel")
-    valLbl.Size                  = UDim2.new(1, -14, 0, 24)
-    valLbl.Position              = UDim2.new(0, 10, 0, 42)
+    valLbl.Size                   = UDim2.new(1, -14, 0, 24)
+    valLbl.Position               = UDim2.new(0, 10, 0, 42)
     valLbl.BackgroundTransparency = 1
-    valLbl.Text                  = "$" .. PackModule.formatNumber(sellValue) .. "  ·  " .. rarityKey
-    valLbl.TextColor3            = Color3.fromRGB(255, 220, 50)
-    valLbl.Font                  = Enum.Font.Gotham
-    valLbl.TextSize              = 12
-    valLbl.TextXAlignment        = Enum.TextXAlignment.Left
-    valLbl.Parent                = bg
+    valLbl.Text                   = "$" .. PackModule.formatNumber(sellValue) .. "  ·  " .. rarityKey
+    valLbl.TextColor3             = Color3.fromRGB(255, 220, 50)
+    valLbl.Font                   = Enum.Font.Gotham
+    valLbl.TextSize               = 12
+    valLbl.TextXAlignment         = Enum.TextXAlignment.Left
+    valLbl.Parent                 = bg
 end)
 
 StopFlexEvent.OnServerEvent:Connect(function(player)
@@ -281,6 +353,9 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 Players.PlayerRemoving:Connect(function(player)
+    -- Stamp logout time so offline earnings start from here, not last login
+    local data = cache[player.UserId]
+    if data then data.lastPassiveCalc = os.time() end
     saveData(player)
     cache[player.UserId] = nil
 end)
@@ -297,5 +372,9 @@ task.spawn(function()
 end)
 
 game:BindToClose(function()
-    for _, player in ipairs(Players:GetPlayers()) do saveData(player) end
+    for _, player in ipairs(Players:GetPlayers()) do
+        local data = cache[player.UserId]
+        if data then data.lastPassiveCalc = os.time() end
+        saveData(player)
+    end
 end)

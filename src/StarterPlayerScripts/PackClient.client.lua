@@ -9,21 +9,23 @@ local TweenService      = game:GetService("TweenService")
 local player    = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local PackModule  = require(ReplicatedStorage:WaitForChild("PackModule"))
-local UI          = ReplicatedStorage:WaitForChild("UI")
-local StoreUI     = require(UI:WaitForChild("StoreUI"))
-local OpeningUI   = require(UI:WaitForChild("OpeningUI"))
-local InventoryUI = require(UI:WaitForChild("InventoryUI"))
-local PreviewUI   = require(UI:WaitForChild("PreviewUI"))
+local PackModule   = require(ReplicatedStorage:WaitForChild("PackModule"))
+local UI           = ReplicatedStorage:WaitForChild("UI")
+local StoreUI      = require(UI:WaitForChild("StoreUI"))
+local OpeningUI    = require(UI:WaitForChild("OpeningUI"))
+local InventoryUI  = require(UI:WaitForChild("InventoryUI"))
+local PreviewUI    = require(UI:WaitForChild("PreviewUI"))
+local BusinessUI   = require(UI:WaitForChild("BusinessUI"))
 
 local Remotes           = ReplicatedStorage:WaitForChild("Remotes")
-local OpenPackFn        = Remotes:WaitForChild("OpenPack")      :: RemoteFunction
-local SellItemFn        = Remotes:WaitForChild("SellItem")      :: RemoteFunction
-local GetDataFn         = Remotes:WaitForChild("GetData")       :: RemoteFunction
-local ClaimWorkFn       = Remotes:WaitForChild("ClaimWork")     :: RemoteFunction
-local UpdateBalanceEvt  = Remotes:WaitForChild("UpdateBalance") :: RemoteEvent
-local FlexItemEvt       = Remotes:WaitForChild("FlexItem")      :: RemoteEvent
-local StopFlexEvt       = Remotes:WaitForChild("StopFlex")      :: RemoteEvent
+local OpenPackFn        = Remotes:WaitForChild("OpenPack")       :: RemoteFunction
+local SellItemFn        = Remotes:WaitForChild("SellItem")       :: RemoteFunction
+local GetDataFn         = Remotes:WaitForChild("GetData")        :: RemoteFunction
+local ClaimWorkFn       = Remotes:WaitForChild("ClaimWork")      :: RemoteFunction
+local BuyBusinessFn     = Remotes:WaitForChild("BuyBusiness")    :: RemoteFunction
+local UpdateBalanceEvt  = Remotes:WaitForChild("UpdateBalance")  :: RemoteEvent
+local FlexItemEvt       = Remotes:WaitForChild("FlexItem")       :: RemoteEvent
+local StopFlexEvt       = Remotes:WaitForChild("StopFlex")       :: RemoteEvent
 
 -- =========================================================================
 -- Constants
@@ -32,21 +34,32 @@ local WORK_COOLDOWN  = 60
 local WORK_CLR       = Color3.fromRGB( 35, 150,  70)
 local WORK_HOV       = Color3.fromRGB( 50, 195,  95)
 local WORK_CD_CLR    = Color3.fromRGB( 55,  55,  55)
+local BIZ_CLR        = Color3.fromRGB(160, 110,  15)
+local BIZ_HOV        = Color3.fromRGB(200, 145,  25)
 
 -- =========================================================================
 -- State
 -- =========================================================================
-local playerData = { balance = 0, cooldowns = {}, inventory = {}, lastWork = 0 }
+local playerData = {
+    balance    = 0,
+    cooldowns  = {},
+    inventory  = {},
+    lastWork   = 0,
+    businesses = {},
+    hourlyRate = 25,
+    streakDays = 0,
+}
 local isOpening  = false
 local isFlexing  = false
 
-local store     = StoreUI.new(playerGui)
-local opening   = OpeningUI.new(playerGui)
-local inventory = InventoryUI.new(playerGui)
-local preview   = PreviewUI.new(playerGui)
+local store    = StoreUI.new(playerGui)
+local opening  = OpeningUI.new(playerGui)
+local inventory= InventoryUI.new(playerGui)
+local preview  = PreviewUI.new(playerGui)
+local business = BusinessUI.new(playerGui)
 
 -- =========================================================================
--- Toast notification  (slides in from the top, auto-dismisses)
+-- Toast notification
 -- =========================================================================
 local function showToast(msg, color)
     color = color or Color3.fromRGB(80, 220, 80)
@@ -58,27 +71,26 @@ local function showToast(msg, color)
     sg.Parent         = playerGui
 
     local lbl = Instance.new("TextLabel")
-    lbl.Size                  = UDim2.fromOffset(320, 50)
-    lbl.Position              = UDim2.new(0.5, -160, 0, -60)
-    lbl.BackgroundColor3      = Color3.fromRGB(18, 18, 32)
-    lbl.BorderSizePixel       = 0
-    lbl.Text                  = msg
-    lbl.TextColor3            = color
-    lbl.Font                  = Enum.Font.GothamBold
-    lbl.TextSize              = 16
-    lbl.BackgroundTransparency= 0
-    lbl.Parent                = sg
+    lbl.Size                   = UDim2.fromOffset(340, 54)
+    lbl.Position               = UDim2.new(0.5, -170, 0, -64)
+    lbl.BackgroundColor3       = Color3.fromRGB(18, 18, 32)
+    lbl.BorderSizePixel        = 0
+    lbl.Text                   = msg
+    lbl.TextColor3             = color
+    lbl.Font                   = Enum.Font.GothamBold
+    lbl.TextSize               = 15
+    lbl.TextWrapped            = true
+    lbl.BackgroundTransparency = 0
+    lbl.Parent                 = sg
     Instance.new("UICorner", lbl).CornerRadius = UDim.new(0, 12)
 
-    -- Slide in
     TweenService:Create(lbl, TweenInfo.new(0.4, Enum.EasingStyle.Back), {
-        Position = UDim2.new(0.5, -160, 0, 18),
+        Position = UDim2.new(0.5, -170, 0, 18),
     }):Play()
 
-    -- Slide out after a delay
-    task.delay(2.8, function()
+    task.delay(3.0, function()
         TweenService:Create(lbl, TweenInfo.new(0.35), {
-            Position              = UDim2.new(0.5, -160, 0, -60),
+            Position              = UDim2.new(0.5, -170, 0, -64),
             BackgroundTransparency= 1,
             TextTransparency      = 1,
         }):Play()
@@ -106,16 +118,30 @@ local function refreshInventory()
     inventory:updateBalance(playerData.balance)
 end
 
+local function refreshBusiness()
+    business:populate(playerData.businesses or {}, playerData.balance)
+    business:updateBalance(playerData.balance)
+end
+
 -- =========================================================================
--- Balance updates from server
--- UpdateBalanceEvt may carry optional (eventType, amount) for toasts
+-- Balance / event updates from server
+-- eventType: "streak" | "offline"
 -- =========================================================================
-UpdateBalanceEvt.OnClientEvent:Connect(function(newBalance, eventType, amount)
+UpdateBalanceEvt.OnClientEvent:Connect(function(newBalance, eventType, amount, extra)
     playerData.balance = newBalance
     store:updateBalance(newBalance)
     inventory:updateBalance(newBalance)
+    business:updateBalance(newBalance)
 
-    if eventType == "daily" then
+    if eventType == "streak" then
+        local day = extra or 1
+        local streakStr = day == 7 and "MAX STREAK! " or string.format("Day %d Streak!  ", day)
+        showToast(streakStr .. "+$" .. PackModule.formatNumber(amount),
+                  Color3.fromRGB(255, 210, 50))
+    elseif eventType == "offline" then
+        showToast("Offline Earnings!  +$" .. PackModule.formatNumber(amount),
+                  Color3.fromRGB(80, 190, 255))
+    elseif eventType == "daily" then   -- legacy fallback
         showToast("Daily Bonus!  +$" .. PackModule.formatNumber(amount),
                   Color3.fromRGB(255, 220, 50))
     end
@@ -202,14 +228,12 @@ end
 store.onPackSelect = openPack
 
 -- =========================================================================
--- Pack preview  (click card body → show contents modal)
+-- Pack preview
 -- =========================================================================
 store.onPackPreview = function(packId)
     if isOpening then return end
     local pack = PackModule.getPackById(packId)
-    if pack then
-        preview:show(pack)
-    end
+    if pack then preview:show(pack) end
 end
 
 -- =========================================================================
@@ -228,12 +252,31 @@ inventory.onSellItem = function(itemId)
 end
 
 -- =========================================================================
--- Inventory FLEX callback
--- stopFlexBtn is forward-declared here; assigned in the Bottom bar section.
--- Lua closures capture the variable binding, so by the time the callback
--- fires the variable will already hold the button instance.
+-- Business BUY callback
 -- =========================================================================
-local stopFlexBtn   -- forward declaration
+business.onBuy = function(businessId)
+    local result = BuyBusinessFn:InvokeServer(businessId)
+    if result and result.success then
+        playerData.balance = result.newBalance
+        playerData.businesses = playerData.businesses or {}
+        playerData.businesses[businessId] = true
+        playerData.hourlyRate = result.hourlyRate
+        store:updateBalance(result.newBalance)
+        inventory:updateBalance(result.newBalance)
+        business:populate(playerData.businesses, result.newBalance)
+        business:updateBalance(result.newBalance)
+        showToast("Business purchased!  +" .. PackModule.formatNumber(result.hourlyRate) .. "/hr total",
+                  Color3.fromRGB(255, 200, 50))
+    else
+        showToast(result and result.reason or "Purchase failed.", Color3.fromRGB(200, 60, 60))
+    end
+end
+
+-- =========================================================================
+-- Flex callback
+-- stopFlexBtn forward-declared; assigned below in bottom bar section.
+-- =========================================================================
+local stopFlexBtn
 
 inventory.onFlexItem = function(itemId, item)
     FlexItemEvt:FireServer(item.name, item.rarity, item.sellValue)
@@ -243,8 +286,8 @@ inventory.onFlexItem = function(itemId, item)
 end
 
 -- =========================================================================
--- Bottom bar buttons
--- Layout (left→right): [STORE] [WORK] [INVENTORY]
+-- Bottom bar  (4 buttons, 120 px wide, 12 px gap, centred)
+-- Layout: [STORE] [WORK] [BUSINESS] [INVENTORY]
 -- =========================================================================
 local btnGui = Instance.new("ScreenGui")
 btnGui.Name           = "BottomBarGui"
@@ -253,7 +296,6 @@ btnGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 btnGui.Parent         = playerGui
 
 local function makeBarBtn(text, color, xOffset, width)
-    width = width or 150
     local btn = Instance.new("TextButton")
     btn.Size             = UDim2.fromOffset(width, 50)
     btn.Position         = UDim2.new(0.5, xOffset, 1, -68)
@@ -261,15 +303,21 @@ local function makeBarBtn(text, color, xOffset, width)
     btn.Text             = text
     btn.TextColor3       = Color3.fromRGB(255, 255, 255)
     btn.Font             = Enum.Font.GothamBold
-    btn.TextSize         = 14
+    btn.TextSize         = 13
     btn.BorderSizePixel  = 0
     btn.Parent           = btnGui
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
     return btn
 end
 
--- Store button  (leftmost)
-local storeBtn = makeBarBtn("Open Store", Color3.fromRGB(75, 55, 200), -270, 145)
+-- xOffsets: 4 × 120 px + 3 × 12 px gap = 516 px total, centred at 0
+-- left edges: -258, -126, 6, 138
+local storeBtn    = makeBarBtn("Open Store",  Color3.fromRGB( 75,  55, 200), -258, 120)
+local workBtn     = makeBarBtn("WORK  +$$$",  WORK_CLR,                      -126, 120)
+local businessBtn = makeBarBtn("Business",    BIZ_CLR,                          6, 120)
+local invBtn      = makeBarBtn("Inventory",   Color3.fromRGB( 40, 120, 160),  138, 120)
+
+-- Store
 storeBtn.MouseEnter:Connect(function()
     TweenService:Create(storeBtn, TweenInfo.new(0.12), { BackgroundColor3 = Color3.fromRGB(100, 80, 230) }):Play()
 end)
@@ -277,13 +325,13 @@ storeBtn.MouseLeave:Connect(function()
     TweenService:Create(storeBtn, TweenInfo.new(0.12), { BackgroundColor3 = Color3.fromRGB(75, 55, 200) }):Play()
 end)
 storeBtn.MouseButton1Click:Connect(function()
-    if store.screenGui.Enabled or inventory.screenGui.Enabled or isOpening then return end
+    if store.screenGui.Enabled or inventory.screenGui.Enabled
+       or business.screenGui.Enabled or isOpening then return end
     refreshStore()
     store:show()
 end)
 
--- Work button (middle)  — earn money on a 60 s cooldown
-local workBtn = makeBarBtn("WORK  +$$$", WORK_CLR, -113, 120)
+-- Work
 workBtn.MouseEnter:Connect(function()
     if workBtn.BackgroundColor3 ~= WORK_CD_CLR then
         TweenService:Create(workBtn, TweenInfo.new(0.12), { BackgroundColor3 = WORK_HOV }):Play()
@@ -295,13 +343,12 @@ workBtn.MouseLeave:Connect(function()
     end
 end)
 workBtn.MouseButton1Click:Connect(function()
-    -- Optimistic client-side cooldown check
     local elapsed = os.time() - (playerData.lastWork or 0)
     if elapsed < WORK_COOLDOWN then return end
 
-    workBtn.Active = false
-    workBtn.Text   = "Working..."
-    workBtn.BackgroundColor3 = WORK_CD_CLR
+    workBtn.Active            = false
+    workBtn.Text              = "Working..."
+    workBtn.BackgroundColor3  = WORK_CD_CLR
 
     local result = ClaimWorkFn:InvokeServer()
     if result and result.success then
@@ -309,14 +356,28 @@ workBtn.MouseButton1Click:Connect(function()
         playerData.lastWork = os.time()
         store:updateBalance(result.newBalance)
         inventory:updateBalance(result.newBalance)
+        business:updateBalance(result.newBalance)
         showToast("You worked!  +$" .. PackModule.formatNumber(result.earned),
                   Color3.fromRGB(80, 220, 120))
     end
     workBtn.Active = true
 end)
 
--- Inventory button (rightmost)
-local invBtn = makeBarBtn("Inventory", Color3.fromRGB(40, 120, 160), 20, 140)
+-- Business
+businessBtn.MouseEnter:Connect(function()
+    TweenService:Create(businessBtn, TweenInfo.new(0.12), { BackgroundColor3 = BIZ_HOV }):Play()
+end)
+businessBtn.MouseLeave:Connect(function()
+    TweenService:Create(businessBtn, TweenInfo.new(0.12), { BackgroundColor3 = BIZ_CLR }):Play()
+end)
+businessBtn.MouseButton1Click:Connect(function()
+    if store.screenGui.Enabled or inventory.screenGui.Enabled
+       or business.screenGui.Enabled or isOpening then return end
+    refreshBusiness()
+    business:show()
+end)
+
+-- Inventory
 invBtn.MouseEnter:Connect(function()
     TweenService:Create(invBtn, TweenInfo.new(0.12), { BackgroundColor3 = Color3.fromRGB(55, 160, 200) }):Play()
 end)
@@ -324,14 +385,14 @@ invBtn.MouseLeave:Connect(function()
     TweenService:Create(invBtn, TweenInfo.new(0.12), { BackgroundColor3 = Color3.fromRGB(40, 120, 160) }):Play()
 end)
 invBtn.MouseButton1Click:Connect(function()
-    if store.screenGui.Enabled or inventory.screenGui.Enabled or isOpening then return end
+    if store.screenGui.Enabled or inventory.screenGui.Enabled
+       or business.screenGui.Enabled or isOpening then return end
     refreshData()
     refreshInventory()
     inventory:show()
 end)
 
--- Stop Flexing button (above bar, hidden until FLEX active)
--- Assigns the forward-declared upvalue captured by inventory.onFlexItem above.
+-- Stop Flex (above bar, hidden until FLEX active)
 stopFlexBtn = Instance.new("TextButton")
 stopFlexBtn.Size             = UDim2.fromOffset(180, 44)
 stopFlexBtn.Position         = UDim2.new(0.5, -90, 1, -126)
@@ -351,7 +412,6 @@ stopFlexBtn.MouseButton1Click:Connect(function()
     stopFlexBtn.Visible = false
 end)
 
--- Pulse inventory button after KEEP (forward declared so it's in scope above)
 function _pulseInventoryBtn()
     local orig   = Color3.fromRGB(40, 120, 160)
     local bright = Color3.fromRGB(80, 220, 255)
@@ -362,24 +422,29 @@ function _pulseInventoryBtn()
 end
 
 -- =========================================================================
--- 1 Hz tick: update pack cooldowns + work button countdown
+-- 1 Hz tick: cooldowns + work countdown + business rate label
 -- =========================================================================
 task.spawn(function()
     while true do
         task.wait(1)
+
         if store.screenGui.Enabled then
             store:updateCooldowns(playerData.cooldowns)
         end
-        -- Update Work button label
+
+        -- Work button countdown
         local elapsed = os.time() - (playerData.lastWork or 0)
         if elapsed < WORK_COOLDOWN then
-            local rem = WORK_COOLDOWN - elapsed
-            workBtn.Text             = string.format("WORK  %ds", rem)
+            workBtn.Text             = string.format("WORK  %ds", WORK_COOLDOWN - elapsed)
             workBtn.BackgroundColor3 = WORK_CD_CLR
         else
             workBtn.Text             = "WORK  +$$$"
             workBtn.BackgroundColor3 = WORK_CLR
         end
+
+        -- Business button shows current passive rate
+        local rate = playerData.hourlyRate or 25
+        businessBtn.Text = "$" .. PackModule.formatNumber(rate) .. "/hr"
     end
 end)
 
