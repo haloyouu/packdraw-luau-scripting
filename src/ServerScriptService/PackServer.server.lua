@@ -59,6 +59,28 @@ local function defaultData()
 end
 
 -- ---------------------------------------------------------------------------
+-- saveData and syncBalance must be defined before loadData so they are
+-- in scope as upvalues (Lua compiles forward references as globals = nil).
+-- ---------------------------------------------------------------------------
+local function saveData(player)
+    local data = cache[player.UserId]
+    if not data then return end
+    local ok, err = pcall(function() Store:SetAsync(tostring(player.UserId), data) end)
+    if not ok then warn("[PackServer] Save failed for", player.Name, "–", err) end
+end
+
+local function syncBalance(player)
+    local data = cache[player.UserId]
+    if not data then return end
+    local ls = player:FindFirstChild("leaderstats")
+    if ls then
+        local c = ls:FindFirstChild("Cash")
+        if c then c.Value = data.balance end
+    end
+    UpdateBalanceEvent:FireClient(player, data.balance)
+end
+
+-- ---------------------------------------------------------------------------
 local function loadData(player)
     local ok, stored = pcall(function() return Store:GetAsync(tostring(player.UserId)) end)
     local data = defaultData()
@@ -117,24 +139,6 @@ local function loadData(player)
             end
         end)
     end
-end
-
-local function saveData(player)
-    local data = cache[player.UserId]
-    if not data then return end
-    local ok, err = pcall(function() Store:SetAsync(tostring(player.UserId), data) end)
-    if not ok then warn("[PackServer] Save failed for", player.Name, "–", err) end
-end
-
-local function syncBalance(player)
-    local data = cache[player.UserId]
-    if not data then return end
-    local ls = player:FindFirstChild("leaderstats")
-    if ls then
-        local c = ls:FindFirstChild("Cash")
-        if c then c.Value = data.balance end
-    end
-    UpdateBalanceEvent:FireClient(player, data.balance)
 end
 
 -- ---------------------------------------------------------------------------
