@@ -59,6 +59,170 @@ local preview  = PreviewUI.new(playerGui)
 local business = BusinessUI.new(playerGui)
 
 -- =========================================================================
+-- Offline earnings reveal  (suspense sequence, not a plain toast)
+-- =========================================================================
+local function showOfflineReveal(amount)
+    local sg = Instance.new("ScreenGui")
+    sg.Name           = "OfflineRevealGui"
+    sg.ResetOnSpawn   = false
+    sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    sg.DisplayOrder   = 8
+    sg.Parent         = playerGui
+
+    local backdrop = Instance.new("Frame")
+    backdrop.Size                   = UDim2.fromScale(1, 1)
+    backdrop.BackgroundColor3       = Color3.fromRGB(4, 6, 18)
+    backdrop.BackgroundTransparency = 0.35
+    backdrop.BorderSizePixel        = 0
+    backdrop.Parent                 = sg
+
+    local panel = Instance.new("Frame")
+    panel.AnchorPoint      = Vector2.new(0.5, 0.5)
+    panel.Size             = UDim2.fromOffset(4, 4)   -- starts tiny, pops in
+    panel.Position         = UDim2.fromScale(0.5, 0.5)
+    panel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    panel.BorderSizePixel  = 0
+    panel.ClipsDescendants = true
+    panel.Parent           = sg
+    Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 18)
+
+    local panelGrad = Instance.new("UIGradient")
+    panelGrad.Rotation = 110
+    panelGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(14, 22, 52)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB( 8, 10, 26)),
+    })
+    panelGrad.Parent = panel
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color     = Color3.fromRGB(60, 150, 255)
+    stroke.Thickness = 2
+    stroke.Parent    = panel
+
+    -- Header
+    local header = Instance.new("TextLabel")
+    header.Size                  = UDim2.new(1, 0, 0, 38)
+    header.Position              = UDim2.new(0, 0, 0, 10)
+    header.BackgroundTransparency= 1
+    header.Text                  = "OFFLINE EARNINGS"
+    header.TextColor3            = Color3.fromRGB(70, 165, 255)
+    header.Font                  = Enum.Font.GothamBold
+    header.TextSize              = 15
+    header.Parent                = panel
+
+    -- "While you were away..."
+    local awayLbl = Instance.new("TextLabel")
+    awayLbl.Size                  = UDim2.new(1, -20, 0, 28)
+    awayLbl.Position              = UDim2.new(0, 10, 0, 52)
+    awayLbl.BackgroundTransparency= 1
+    awayLbl.Text                  = "While you were away..."
+    awayLbl.TextColor3            = Color3.fromRGB(150, 175, 220)
+    awayLbl.Font                  = Enum.Font.Gotham
+    awayLbl.TextSize              = 15
+    awayLbl.TextTransparency      = 1
+    awayLbl.Parent                = panel
+
+    -- Big amount (counts up)
+    local amountLbl = Instance.new("TextLabel")
+    amountLbl.AnchorPoint          = Vector2.new(0.5, 0)
+    amountLbl.Size                 = UDim2.new(1, -20, 0, 72)
+    amountLbl.Position             = UDim2.new(0.5, 0, 0, 90)
+    amountLbl.BackgroundTransparency= 1
+    amountLbl.Text                 = "$0"
+    amountLbl.TextColor3           = Color3.fromRGB(255, 220, 50)
+    amountLbl.Font                 = Enum.Font.GothamBold
+    amountLbl.TextSize             = 54
+    amountLbl.TextTransparency     = 1
+    amountLbl.Parent               = panel
+
+    -- "you earned while offline"
+    local subLbl = Instance.new("TextLabel")
+    subLbl.Size                  = UDim2.new(1, -20, 0, 22)
+    subLbl.Position              = UDim2.new(0, 10, 0, 166)
+    subLbl.BackgroundTransparency= 1
+    subLbl.Text                  = "you earned while offline"
+    subLbl.TextColor3            = Color3.fromRGB(110, 135, 180)
+    subLbl.Font                  = Enum.Font.Gotham
+    subLbl.TextSize              = 13
+    subLbl.TextTransparency      = 1
+    subLbl.Parent                = panel
+
+    -- COLLECT button
+    local collectBtn = Instance.new("TextButton")
+    collectBtn.AnchorPoint      = Vector2.new(0.5, 0)
+    collectBtn.Size             = UDim2.fromOffset(170, 44)
+    collectBtn.Position         = UDim2.new(0.5, 0, 0, 200)
+    collectBtn.BackgroundColor3 = Color3.fromRGB(40, 130, 255)
+    collectBtn.Text             = "COLLECT"
+    collectBtn.TextColor3       = Color3.fromRGB(255, 255, 255)
+    collectBtn.Font             = Enum.Font.GothamBold
+    collectBtn.TextSize         = 15
+    collectBtn.BorderSizePixel  = 0
+    collectBtn.Visible          = false
+    collectBtn.Parent           = panel
+    Instance.new("UICorner", collectBtn).CornerRadius = UDim.new(0, 10)
+    collectBtn.MouseEnter:Connect(function()
+        TweenService:Create(collectBtn, TweenInfo.new(0.12), {
+            BackgroundColor3 = Color3.fromRGB(70, 160, 255)
+        }):Play()
+    end)
+    collectBtn.MouseLeave:Connect(function()
+        TweenService:Create(collectBtn, TweenInfo.new(0.12), {
+            BackgroundColor3 = Color3.fromRGB(40, 130, 255)
+        }):Play()
+    end)
+
+    local function dismiss()
+        TweenService:Create(panel,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+            { Size = UDim2.fromOffset(4, 4) }):Play()
+        task.delay(0.28, function() sg:Destroy() end)
+    end
+    collectBtn.MouseButton1Click:Connect(dismiss)
+
+    -- ── Reveal sequence ────────────────────────────────────────────────────
+    -- 1. Panel pops in
+    TweenService:Create(panel, TweenInfo.new(0.45, Enum.EasingStyle.Back), {
+        Size = UDim2.fromOffset(430, 262)
+    }):Play()
+
+    -- 2. "While you were away..." fades in
+    task.delay(0.5, function()
+        TweenService:Create(awayLbl, TweenInfo.new(0.5), { TextTransparency = 0 }):Play()
+    end)
+
+    -- 3. Amount appears then counts up
+    task.delay(1.3, function()
+        TweenService:Create(amountLbl, TweenInfo.new(0.35, Enum.EasingStyle.Back), {
+            TextTransparency = 0
+        }):Play()
+        task.spawn(function()
+            local steps    = 28
+            local duration = 1.8
+            for i = 1, steps do
+                task.wait(duration / steps)
+                -- ease-out curve so it slows down at the end
+                local t = i / steps
+                local eased = 1 - (1 - t) ^ 3
+                amountLbl.Text = "$" .. PackModule.formatNumber(math.floor(amount * eased))
+            end
+            amountLbl.Text = "$" .. PackModule.formatNumber(amount)
+        end)
+    end)
+
+    -- 4. Sub-label and button appear once count-up is almost done
+    task.delay(2.8, function()
+        TweenService:Create(subLbl, TweenInfo.new(0.4), { TextTransparency = 0 }):Play()
+        collectBtn.Visible = true
+    end)
+
+    -- 5. Auto-dismiss after 10 s if player ignores it
+    task.delay(10, function()
+        if sg.Parent then dismiss() end
+    end)
+end
+
+-- =========================================================================
 -- Toast notification
 -- =========================================================================
 local function showToast(msg, color)
@@ -139,8 +303,7 @@ UpdateBalanceEvt.OnClientEvent:Connect(function(newBalance, eventType, amount, e
         showToast(streakStr .. "+$" .. PackModule.formatNumber(amount),
                   Color3.fromRGB(255, 210, 50))
     elseif eventType == "offline" then
-        showToast("Offline Earnings!  +$" .. PackModule.formatNumber(amount),
-                  Color3.fromRGB(80, 190, 255))
+        showOfflineReveal(amount)
     elseif eventType == "daily" then   -- legacy fallback
         showToast("Daily Bonus!  +$" .. PackModule.formatNumber(amount),
                   Color3.fromRGB(255, 220, 50))
