@@ -13,11 +13,11 @@ local REEL_H      = 200
 local TOTAL_CARDS = 42
 local WINNER_IDX  = 34
 
-local BG        = Color3.fromRGB( 15,  15,  20)
-local REEL_BG   = Color3.fromRGB( 22,  22,  30)
-local CARD_BG   = Color3.fromRGB( 30,  30,  42)
+local BG        = Color3.fromRGB( 18,  18,  18)
+local REEL_BG   = Color3.fromRGB( 12,  12,  12)
+local CARD_BG   = Color3.fromRGB( 36,  36,  36)
 local TEXT_W    = Color3.fromRGB(255, 255, 255)
-local TEXT_DIM  = Color3.fromRGB(160, 160, 200)
+local TEXT_DIM  = Color3.fromRGB(170, 170, 170)
 local GOLD      = Color3.fromRGB(255, 220,  50)
 local GREEN     = Color3.fromRGB( 90, 220, 100)
 
@@ -99,7 +99,7 @@ function OpeningUI:_build()
     -- ── Item name strip (top of panel, hidden until spin ends) ─────────────
     local nameStrip = Instance.new("Frame")
     nameStrip.Size            = UDim2.new(1, 0, 0, 52)
-    nameStrip.BackgroundColor3= Color3.fromRGB(18, 18, 26)
+    nameStrip.BackgroundColor3= Color3.fromRGB(20, 20, 20)
     nameStrip.BorderSizePixel = 0
     nameStrip.ZIndex          = 3
     nameStrip.Visible         = false
@@ -240,7 +240,7 @@ function OpeningUI:_build()
     local btnRow = Instance.new("Frame")
     btnRow.Size            = UDim2.new(1, 0, 0, 64)
     btnRow.Position        = UDim2.new(0, 0, 0, 52 + REEL_H)
-    btnRow.BackgroundColor3= Color3.fromRGB(18, 18, 26)
+    btnRow.BackgroundColor3= Color3.fromRGB(20, 20, 20)
     btnRow.BorderSizePixel = 0
     btnRow.ZIndex          = 3
     btnRow.Visible         = false
@@ -262,7 +262,7 @@ function OpeningUI:_build()
     Instance.new("UICorner", sellBtn).CornerRadius = UDim.new(0, 4)
     local sellStroke = Instance.new("UIStroke")
     sellStroke.Color     = GREEN
-    sellStroke.Thickness = 1.5
+    sellStroke.Thickness = 0.8
     sellStroke.Parent    = sellBtn
     self.sellBtn   = sellBtn
     self.sellStroke = sellStroke
@@ -281,8 +281,8 @@ function OpeningUI:_build()
     rerollBtn.Parent           = btnRow
     Instance.new("UICorner", rerollBtn).CornerRadius = UDim.new(0, 4)
     local rerollStroke = Instance.new("UIStroke")
-    rerollStroke.Color     = Color3.fromRGB(80, 80, 100)
-    rerollStroke.Thickness = 1.5
+    rerollStroke.Color     = Color3.fromRGB(70, 70, 70)
+    rerollStroke.Thickness = 0.8
     rerollStroke.Parent    = rerollBtn
     self.rerollBtn = rerollBtn
 
@@ -299,12 +299,12 @@ function OpeningUI:_build()
     end)
     rerollBtn.MouseEnter:Connect(function()
         TweenService:Create(rerollBtn, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(55, 55, 75)
+            BackgroundColor3 = Color3.fromRGB(58, 58, 58)
         }):Play()
     end)
     rerollBtn.MouseLeave:Connect(function()
         TweenService:Create(rerollBtn, TweenInfo.new(0.1), {
-            BackgroundColor3 = Color3.fromRGB(38, 38, 52)
+            BackgroundColor3 = Color3.fromRGB(38, 38, 38)
         }):Play()
     end)
 
