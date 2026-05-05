@@ -7,6 +7,8 @@ local TweenService  = game:GetService("TweenService")
 local Lighting      = game:GetService("Lighting")
 local PackModule    = require(script.Parent.Parent.PackModule)
 
+local FONT_BOLD = Font.new("rbxasset://fonts/families/ComicNeueAngular.json", Enum.FontWeight.Bold)
+
 local SLOT_W      = 138
 local CARD_W      = 126
 local CARD_H      = 170
@@ -94,7 +96,7 @@ function OpeningUI:_build()
 
     -- Glow border (coloured outline that pulses on win)
     local glowBorder = Instance.new("UIStroke")
-    glowBorder.Color     = Color3.fromRGB(100, 100, 255)
+    glowBorder.Color     = Color3.fromRGB(130, 130, 130)
     glowBorder.Thickness = 2
     glowBorder.Parent    = panel
     self.glowStroke      = glowBorder
@@ -115,7 +117,7 @@ function OpeningUI:_build()
     itemNameLbl.BackgroundTransparency = 1
     itemNameLbl.Text                   = ""
     itemNameLbl.TextColor3             = TEXT_W
-    itemNameLbl.Font                   = Enum.Font.GothamBold
+    itemNameLbl.FontFace               = FONT_BOLD
     itemNameLbl.TextSize               = 18
     itemNameLbl.TextXAlignment         = Enum.TextXAlignment.Left
     itemNameLbl.ZIndex                 = 4
@@ -128,7 +130,7 @@ function OpeningUI:_build()
     rarityTagLbl.BackgroundTransparency = 1
     rarityTagLbl.Text                   = ""
     rarityTagLbl.TextColor3             = GOLD
-    rarityTagLbl.Font                   = Enum.Font.GothamBold
+    rarityTagLbl.FontFace               = FONT_BOLD
     rarityTagLbl.TextSize               = 15
     rarityTagLbl.TextXAlignment         = Enum.TextXAlignment.Right
     rarityTagLbl.ZIndex                 = 4
@@ -143,7 +145,7 @@ function OpeningUI:_build()
     spinLbl.BackgroundTransparency = 1
     spinLbl.Text                   = "Opening..."
     spinLbl.TextColor3             = TEXT_DIM
-    spinLbl.Font                   = Enum.Font.GothamBold
+    spinLbl.FontFace               = FONT_BOLD
     spinLbl.TextSize               = 16
     spinLbl.TextXAlignment         = Enum.TextXAlignment.Left
     spinLbl.ZIndex                 = 3
@@ -257,7 +259,7 @@ function OpeningUI:_build()
     sellBtn.BackgroundColor3 = Color3.fromRGB(20, 50, 25)
     sellBtn.Text             = "Sell for $0"
     sellBtn.TextColor3       = GREEN
-    sellBtn.Font             = Enum.Font.GothamBold
+    sellBtn.FontFace         = FONT_BOLD
     sellBtn.TextSize         = 15
     sellBtn.BorderSizePixel  = 0
     sellBtn.ZIndex           = 4
@@ -274,10 +276,10 @@ function OpeningUI:_build()
     local rerollBtn = Instance.new("TextButton")
     rerollBtn.Size             = UDim2.new(0.48, -16, 0, 40)
     rerollBtn.Position         = UDim2.new(0.50, 8, 0.5, -20)
-    rerollBtn.BackgroundColor3 = Color3.fromRGB(38, 38, 52)
+    rerollBtn.BackgroundColor3 = Color3.fromRGB(42, 42, 42)
     rerollBtn.Text             = "Reroll"
     rerollBtn.TextColor3       = TEXT_W
-    rerollBtn.Font             = Enum.Font.GothamBold
+    rerollBtn.FontFace         = FONT_BOLD
     rerollBtn.TextSize         = 15
     rerollBtn.BorderSizePixel  = 0
     rerollBtn.ZIndex           = 4
@@ -337,7 +339,7 @@ function OpeningUI:_build()
     commentaryLbl.BackgroundTransparency = 1
     commentaryLbl.Text                   = ""
     commentaryLbl.TextColor3             = GOLD
-    commentaryLbl.Font                   = Enum.Font.GothamBold
+    commentaryLbl.FontFace               = FONT_BOLD
     commentaryLbl.TextSize               = 28
     commentaryLbl.TextTransparency       = 1
     commentaryLbl.TextStrokeTransparency = 0.6
@@ -416,7 +418,7 @@ function OpeningUI:_makeReelCard(item, slotIndex)
     nameLbl.BackgroundTransparency= 1
     nameLbl.Text                  = item.name
     nameLbl.TextColor3            = TEXT_W
-    nameLbl.Font                  = Enum.Font.GothamBold
+    nameLbl.FontFace              = FONT_BOLD
     nameLbl.TextSize              = 11
     nameLbl.TextWrapped           = true
     nameLbl.TextYAlignment        = Enum.TextYAlignment.Top
@@ -430,7 +432,7 @@ function OpeningUI:_makeReelCard(item, slotIndex)
     valLbl.BackgroundTransparency= 1
     valLbl.Text                  = "$" .. PackModule.formatNumber(item.sellValue)
     valLbl.TextColor3            = rarityInfo.color
-    valLbl.Font                  = Enum.Font.GothamBold
+    valLbl.FontFace              = FONT_BOLD
     valLbl.TextSize              = 11
     valLbl.ZIndex                = 6
     valLbl.Parent                = card
