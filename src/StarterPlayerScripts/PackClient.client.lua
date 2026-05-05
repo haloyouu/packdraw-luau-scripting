@@ -351,6 +351,19 @@ local function openPack(packId)
             opening:revealItem(result.item)
         end)
 
+        -- Helper: register the item locally (already saved server-side)
+        local function keepItemLocally(item)
+            if not item then return end
+            playerData.inventory[item.id] = {
+                name      = item.name,
+                imageId   = item.imageId,
+                sellValue = item.sellValue,
+                rarity    = item.rarity,
+            }
+            inventory:addItem(item.id, playerData.inventory[item.id])
+            _pulseInventoryBtn()
+        end
+
         opening.onSell = function(item)
             if not item then isOpening = false; return end
             local sellResult = SellItemFn:InvokeServer(item.id)
@@ -364,23 +377,21 @@ local function openPack(packId)
             store:show()
         end
 
-        opening.onKeep = function(item)
-            if not item then isOpening = false; return end
-            playerData.inventory[item.id] = {
-                name      = item.name,
-                imageId   = item.imageId,
-                sellValue = item.sellValue,
-                rarity    = item.rarity,
-            }
-            inventory:addItem(item.id, playerData.inventory[item.id])
+        -- Reroll: item auto-kept, immediately open the same pack again
+        opening.onReroll = function(item, pack)
+            keepItemLocally(item)
             isOpening = false
-            refreshStore()
-            store:show()
-            _pulseInventoryBtn()
+            refreshData()
+            if pack then
+                openPack(pack.id)
+            else
+                refreshStore()
+                store:show()
+            end
         end
     else
         opening:showError(result and result.reason or "Something went wrong.")
-        opening.onKeep = function(_)
+        opening.onReroll = function(_, _)
             isOpening = false
             refreshStore()
             store:show()

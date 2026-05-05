@@ -1,35 +1,35 @@
 -- =============================================================================
 -- OpeningUI  (ModuleScript — ReplicatedStorage/UI)
+-- CS:GO / Packdraw style reel UI
 -- =============================================================================
 
 local TweenService = game:GetService("TweenService")
 local PackModule   = require(script.Parent.Parent.PackModule)
 
-local SLOT_W      = 142
-local CARD_W      = 130
-local CARD_H      = 162
-local REEL_H      = 190
+local SLOT_W      = 138
+local CARD_W      = 126
+local CARD_H      = 170
+local REEL_H      = 200
 local TOTAL_CARDS = 42
 local WINNER_IDX  = 34
 
-local PANEL_BG = Color3.fromRGB(18, 18, 32)
-local DARK_BG  = Color3.fromRGB( 8,  8, 18)
-local TEXT_W   = Color3.fromRGB(255, 255, 255)
-local TEXT_DIM = Color3.fromRGB(160, 160, 200)
-local GOLD     = Color3.fromRGB(255, 220,  50)
+local BG        = Color3.fromRGB( 15,  15,  20)
+local REEL_BG   = Color3.fromRGB( 22,  22,  30)
+local CARD_BG   = Color3.fromRGB( 30,  30,  42)
+local TEXT_W    = Color3.fromRGB(255, 255, 255)
+local TEXT_DIM  = Color3.fromRGB(160, 160, 200)
+local GOLD      = Color3.fromRGB(255, 220,  50)
+local GREEN     = Color3.fromRGB( 90, 220, 100)
 
--- ---------------------------------------------------------------------------
--- Rarity commentary pools
 -- ---------------------------------------------------------------------------
 local COMMENTARY = {
-    Common    = { "Not bad...", "A start!", "Keep trying.", "Could be worse!", "Better luck next time.", "Ehh, it's something." },
-    Uncommon  = { "Nice one!", "That's decent!", "Getting warmer!", "Solid pick.", "Not too shabby!", "I'll take it!" },
-    Rare      = { "Ooh nice!", "Now we're talking!", "That's rare!", "Fire!", "Clean pull!", "Let's go!", "Respect." },
-    Epic      = { "EPIC!", "You crazy?!", "Wild pull!", "THIS IS IT!", "LET'S GO!", "No way...", "CHAT!", "That's dirty." },
-    Legendary = { "LEGENDARY!!!", "INSANE!", "Are you kidding?!", "GOATED!", "ABSOLUTELY MENTAL!", "CHAT IS LOSING IT!", "This cannot be real!", "W PULL!!!!", "BRO.", "THE RAREST!!!!" },
+    Common    = { "Not bad...", "A start!", "Keep trying.", "Could be worse!" },
+    Uncommon  = { "Nice one!", "That's decent!", "Getting warmer!", "Solid pick." },
+    Rare      = { "Ooh nice!", "Now we're talking!", "Fire!", "Clean pull!" },
+    Epic      = { "EPIC!", "You crazy?!", "Wild pull!", "LET'S GO!", "CHAT!" },
+    Legendary = { "LEGENDARY!!!", "INSANE!", "GOATED!", "ABSOLUTELY MENTAL!", "W PULL!!!!" },
 }
 
--- Per-rarity hit effect settings
 local HIT_FX = {
     Common    = { shakes = 0, flashes = 1, flashAlpha = 0.10, bounceSize = 1.06, sparks = 0,  commentSize = 20, commentDuration = 1.6 },
     Uncommon  = { shakes = 0, flashes = 1, flashAlpha = 0.16, bounceSize = 1.09, sparks = 0,  commentSize = 24, commentDuration = 1.8 },
@@ -45,8 +45,8 @@ OpeningUI.__index = OpeningUI
 function OpeningUI.new(playerGui)
     local self = setmetatable({}, OpeningUI)
     self.playerGui    = playerGui
-    self.onSell       = nil
-    self.onKeep       = nil
+    self.onSell       = nil   -- callback(item)
+    self.onReroll     = nil   -- callback(item) – item auto-kept, open again
     self._currentItem = nil
     self._currentPack = nil
     self._glowTween   = nil
@@ -67,125 +67,118 @@ function OpeningUI:_build()
     sg.Parent         = self.playerGui
     self.screenGui    = sg
 
-    -- ── Animated dim background ────────────────────────────────────────────
-    local dim = Instance.new("Frame")
-    dim.Size                   = UDim2.fromScale(1, 1)
-    dim.BackgroundColor3       = Color3.fromRGB(255, 255, 255)
-    dim.BackgroundTransparency = 0.15
-    dim.BorderSizePixel        = 0
-    dim.Parent                 = sg
+    -- Full-screen dark overlay
+    local overlay = Instance.new("Frame")
+    overlay.Size                   = UDim2.fromScale(1, 1)
+    overlay.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+    overlay.BackgroundTransparency = 0.45
+    overlay.BorderSizePixel        = 0
+    overlay.ZIndex                 = 1
+    overlay.Parent                 = sg
 
-    local dimGrad = Instance.new("UIGradient")
-    dimGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(20, 10, 45)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB( 8,  8, 22)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(10, 20, 50)),
-    })
-    dimGrad.Rotation = 45
-    dimGrad.Parent   = dim
+    -- ── Main panel (wide, not too tall) ────────────────────────────────────
+    local panel = Instance.new("Frame")
+    panel.Name             = "Panel"
+    panel.AnchorPoint      = Vector2.new(0.5, 0.5)
+    panel.Size             = UDim2.new(0.92, 0, 0, 420)
+    panel.Position         = UDim2.fromScale(0.5, 0.5)
+    panel.BackgroundColor3 = BG
+    panel.BorderSizePixel  = 0
+    panel.ZIndex           = 2
+    panel.Parent           = sg
+    Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 6)
+    self.panel = panel
 
-    -- Slowly rotate background gradient for subtle motion
-    task.spawn(function()
-        local r = 45
-        while sg.Parent do
-            task.wait(0.05)
-            r = (r + 0.15) % 360
-            dimGrad.Rotation = r
-        end
-    end)
+    -- Glow border (coloured outline that pulses on win)
+    local glowBorder = Instance.new("UIStroke")
+    glowBorder.Color     = Color3.fromRGB(100, 100, 255)
+    glowBorder.Thickness = 2
+    glowBorder.Parent    = panel
+    self.glowStroke      = glowBorder
 
-    -- ── Glow border ────────────────────────────────────────────────────────
-    local glowBorder = Instance.new("Frame")
-    glowBorder.Name             = "GlowBorder"
-    glowBorder.AnchorPoint      = Vector2.new(0.5, 0.5)
-    glowBorder.Size             = UDim2.fromOffset(852, 582)
-    glowBorder.Position         = UDim2.fromScale(0.5, 0.5)
-    glowBorder.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
-    glowBorder.BorderSizePixel  = 0
-    glowBorder.ZIndex           = 1
-    glowBorder.Parent           = sg
-    Instance.new("UICorner", glowBorder).CornerRadius = UDim.new(0, 20)
-    self.glowBorder = glowBorder
+    -- ── Item name strip (top of panel, hidden until spin ends) ─────────────
+    local nameStrip = Instance.new("Frame")
+    nameStrip.Size            = UDim2.new(1, 0, 0, 52)
+    nameStrip.BackgroundColor3= Color3.fromRGB(18, 18, 26)
+    nameStrip.BorderSizePixel = 0
+    nameStrip.ZIndex          = 3
+    nameStrip.Visible         = false
+    nameStrip.Parent          = panel
+    self.nameStrip = nameStrip
 
-    -- ── Main container ─────────────────────────────────────────────────────
-    local container = Instance.new("Frame")
-    container.Name             = "Container"
-    container.AnchorPoint      = Vector2.new(0.5, 0.5)
-    container.Size             = UDim2.fromOffset(840, 570)
-    container.Position         = UDim2.fromScale(0.5, 0.5)
-    container.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    container.BorderSizePixel  = 0
-    container.ZIndex           = 2
-    container.Parent           = sg
-    Instance.new("UICorner", container).CornerRadius = UDim.new(0, 16)
-    self.container = container
+    local itemNameLbl = Instance.new("TextLabel")
+    itemNameLbl.Size                   = UDim2.new(1, -20, 1, 0)
+    itemNameLbl.Position               = UDim2.new(0, 10, 0, 0)
+    itemNameLbl.BackgroundTransparency = 1
+    itemNameLbl.Text                   = ""
+    itemNameLbl.TextColor3             = TEXT_W
+    itemNameLbl.Font                   = Enum.Font.GothamBold
+    itemNameLbl.TextSize               = 18
+    itemNameLbl.TextXAlignment         = Enum.TextXAlignment.Left
+    itemNameLbl.ZIndex                 = 4
+    itemNameLbl.Parent                 = nameStrip
+    self.itemNameLbl = itemNameLbl
 
-    local containerGrad = Instance.new("UIGradient")
-    containerGrad.Rotation = 90
-    containerGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(30, 30, 54)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(18, 18, 32)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(10, 10, 20)),
-    })
-    containerGrad.Parent = container
+    local rarityTagLbl = Instance.new("TextLabel")
+    rarityTagLbl.Size                   = UDim2.new(0, 180, 1, 0)
+    rarityTagLbl.Position               = UDim2.new(1, -190, 0, 0)
+    rarityTagLbl.BackgroundTransparency = 1
+    rarityTagLbl.Text                   = ""
+    rarityTagLbl.TextColor3             = GOLD
+    rarityTagLbl.Font                   = Enum.Font.GothamBold
+    rarityTagLbl.TextSize               = 15
+    rarityTagLbl.TextXAlignment         = Enum.TextXAlignment.Right
+    rarityTagLbl.ZIndex                 = 4
+    rarityTagLbl.Parent                 = nameStrip
+    self.rarityTagLbl = rarityTagLbl
 
-    -- ── Header ─────────────────────────────────────────────────────────────
-    local header = Instance.new("TextLabel")
-    header.Size                  = UDim2.new(1, -20, 0, 48)
-    header.Position              = UDim2.new(0, 10, 0, 4)
-    header.BackgroundTransparency= 1
-    header.Text                  = "Opening Pack..."
-    header.TextColor3            = TEXT_W
-    header.Font                  = Enum.Font.GothamBold
-    header.TextSize              = 22
-    header.ZIndex                = 3
-    header.Parent                = container
-    self.header = header
+    -- Opening pack label (shown while spinning)
+    local spinLbl = Instance.new("TextLabel")
+    spinLbl.Name                   = "SpinLbl"
+    spinLbl.Size                   = UDim2.new(1, -20, 0, 52)
+    spinLbl.Position               = UDim2.new(0, 10, 0, 0)
+    spinLbl.BackgroundTransparency = 1
+    spinLbl.Text                   = "Opening..."
+    spinLbl.TextColor3             = TEXT_DIM
+    spinLbl.Font                   = Enum.Font.GothamBold
+    spinLbl.TextSize               = 16
+    spinLbl.TextXAlignment         = Enum.TextXAlignment.Left
+    spinLbl.ZIndex                 = 3
+    spinLbl.Parent                 = panel
+    self.spinLbl = spinLbl
 
-    -- ── Reel clip ──────────────────────────────────────────────────────────
+    -- ── Reel area ──────────────────────────────────────────────────────────
     local reelClip = Instance.new("Frame")
     reelClip.Name             = "ReelClip"
     reelClip.Size             = UDim2.new(1, 0, 0, REEL_H)
-    reelClip.Position         = UDim2.new(0, 0, 0, 56)
-    reelClip.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+    reelClip.Position         = UDim2.new(0, 0, 0, 52)
+    reelClip.BackgroundColor3 = REEL_BG
     reelClip.BorderSizePixel  = 0
     reelClip.ClipsDescendants = true
     reelClip.ZIndex           = 3
-    reelClip.Parent           = container
+    reelClip.Parent           = panel
     self.reelClip = reelClip
 
-    -- Top vignette on reel
-    local reelTopFade = Instance.new("Frame")
-    reelTopFade.Size                   = UDim2.new(1, 0, 0, 30)
-    reelTopFade.BackgroundColor3       = Color3.fromRGB(10, 10, 20)
-    reelTopFade.BackgroundTransparency = 0
-    reelTopFade.BorderSizePixel        = 0
-    reelTopFade.ZIndex                 = 7
-    reelTopFade.Parent                 = reelClip
-    local topFadeGrad = Instance.new("UIGradient")
-    topFadeGrad.Rotation = 90
-    topFadeGrad.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0),
-        NumberSequenceKeypoint.new(1, 1),
-    })
-    topFadeGrad.Parent = reelTopFade
-
-    -- Bottom vignette on reel
-    local reelBotFade = Instance.new("Frame")
-    reelBotFade.Size                   = UDim2.new(1, 0, 0, 30)
-    reelBotFade.Position               = UDim2.new(0, 0, 1, -30)
-    reelBotFade.BackgroundColor3       = Color3.fromRGB(10, 10, 20)
-    reelBotFade.BackgroundTransparency = 0
-    reelBotFade.BorderSizePixel        = 0
-    reelBotFade.ZIndex                 = 7
-    reelBotFade.Parent                 = reelClip
-    local botFadeGrad = Instance.new("UIGradient")
-    botFadeGrad.Rotation = 270
-    botFadeGrad.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0),
-        NumberSequenceKeypoint.new(1, 1),
-    })
-    botFadeGrad.Parent = reelBotFade
+    -- Left edge fade
+    local function makeSideFade(anchorRight)
+        local f = Instance.new("Frame")
+        f.Size                   = UDim2.new(0.10, 0, 1, 0)
+        f.Position               = anchorRight and UDim2.new(0.90, 0, 0, 0) or UDim2.new(0, 0, 0, 0)
+        f.BackgroundColor3       = REEL_BG
+        f.BackgroundTransparency = 0
+        f.BorderSizePixel        = 0
+        f.ZIndex                 = 7
+        f.Parent                 = reelClip
+        local g = Instance.new("UIGradient")
+        g.Rotation    = anchorRight and 270 or 90
+        g.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0),
+            NumberSequenceKeypoint.new(1, 1),
+        })
+        g.Parent = f
+    end
+    makeSideFade(false)
+    makeSideFade(true)
 
     -- Strip
     local strip = Instance.new("Frame")
@@ -194,213 +187,125 @@ function OpeningUI:_build()
     strip.Position            = UDim2.fromOffset(9999, 0)
     strip.BackgroundTransparency = 1
     strip.BorderSizePixel     = 0
-    strip.ZIndex              = 3
+    strip.ZIndex              = 4
     strip.Parent              = reelClip
     self.strip = strip
 
-    -- Centre pointer
-    local pointer = Instance.new("Frame")
-    pointer.Size            = UDim2.new(0, 3, 1, 0)
-    pointer.Position        = UDim2.new(0.5, -1, 0, 0)
-    pointer.BackgroundColor3= Color3.fromRGB(255, 255, 255)
-    pointer.BorderSizePixel = 0
-    pointer.ZIndex          = 10
-    pointer.Parent          = reelClip
+    -- Center triangle pointers (CS:GO style)
+    local function makeTriangle(bottom)
+        local t = Instance.new("Frame")
+        t.AnchorPoint      = Vector2.new(0.5, bottom and 1 or 0)
+        t.Size             = UDim2.fromOffset(18, 14)
+        t.Position         = UDim2.new(0.5, 0, bottom and 1 or 0, 0)
+        t.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+        t.BorderSizePixel  = 0
+        t.ZIndex           = 10
+        t.Parent           = reelClip
+        -- Use rotation trick for triangle look
+        local g = Instance.new("UIGradient")
+        g.Rotation    = bottom and 180 or 0
+        g.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0),
+            NumberSequenceKeypoint.new(0.5, 0),
+            NumberSequenceKeypoint.new(1, 1),
+        })
+        g.Parent = t
+    end
+    makeTriangle(false)
+    makeTriangle(true)
 
-    local topTick = Instance.new("Frame")
-    topTick.Size            = UDim2.fromOffset(14, 10)
-    topTick.Position        = UDim2.new(0.5, -7, 0, 0)
-    topTick.BackgroundColor3= Color3.fromRGB(255, 255, 255)
-    topTick.BorderSizePixel = 0
-    topTick.ZIndex          = 10
-    topTick.Parent          = reelClip
+    -- Center vertical line
+    local centerLine = Instance.new("Frame")
+    centerLine.AnchorPoint      = Vector2.new(0.5, 0)
+    centerLine.Size             = UDim2.new(0, 2, 1, 0)
+    centerLine.Position         = UDim2.new(0.5, 0, 0, 0)
+    centerLine.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    centerLine.BackgroundTransparency = 0.4
+    centerLine.BorderSizePixel  = 0
+    centerLine.ZIndex           = 9
+    centerLine.Parent           = reelClip
 
-    local botTick = Instance.new("Frame")
-    botTick.Size            = UDim2.fromOffset(14, 10)
-    botTick.Position        = UDim2.new(0.5, -7, 1, -10)
-    botTick.BackgroundColor3= Color3.fromRGB(255, 255, 255)
-    botTick.BorderSizePixel = 0
-    botTick.ZIndex          = 10
-    botTick.Parent          = reelClip
-
-    -- Left edge fade
-    local leftFade = Instance.new("Frame")
-    leftFade.Size                   = UDim2.new(0.12, 0, 1, 0)
-    leftFade.BackgroundColor3       = Color3.fromRGB(10, 10, 20)
-    leftFade.BackgroundTransparency = 0.1
-    leftFade.BorderSizePixel        = 0
-    leftFade.ZIndex                 = 8
-    leftFade.Parent                 = reelClip
-    local leftGrad = Instance.new("UIGradient")
-    leftGrad.Rotation    = 90
-    leftGrad.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0),
-        NumberSequenceKeypoint.new(1, 1),
-    })
-    leftGrad.Parent = leftFade
-
-    -- Right edge fade
-    local rightFade = Instance.new("Frame")
-    rightFade.Size                   = UDim2.new(0.12, 0, 1, 0)
-    rightFade.Position               = UDim2.new(0.88, 0, 0, 0)
-    rightFade.BackgroundColor3       = Color3.fromRGB(10, 10, 20)
-    rightFade.BackgroundTransparency = 0.1
-    rightFade.BorderSizePixel        = 0
-    rightFade.ZIndex                 = 8
-    rightFade.Parent                 = reelClip
-    local rightGrad = Instance.new("UIGradient")
-    rightGrad.Rotation    = 270
-    rightGrad.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0),
-        NumberSequenceKeypoint.new(1, 1),
-    })
-    rightGrad.Parent = rightFade
-
-    -- ── Flash overlay (full container, used for hit effects) ───────────────
+    -- ── Flash overlay ─────────────────────────────────────────────────────
     local flashOverlay = Instance.new("Frame")
     flashOverlay.Size                   = UDim2.fromScale(1, 1)
     flashOverlay.BackgroundColor3       = Color3.fromRGB(255, 255, 255)
     flashOverlay.BackgroundTransparency = 1
     flashOverlay.BorderSizePixel        = 0
-    flashOverlay.ZIndex                 = 9
-    flashOverlay.Parent                 = container
-    Instance.new("UICorner", flashOverlay).CornerRadius = UDim.new(0, 16)
+    flashOverlay.ZIndex                 = 8
+    flashOverlay.Parent                 = panel
+    Instance.new("UICorner", flashOverlay).CornerRadius = UDim.new(0, 6)
     self.flashOverlay = flashOverlay
 
-    -- ── Post-reel info ─────────────────────────────────────────────────────
-    local rarityBadge = Instance.new("Frame")
-    rarityBadge.AnchorPoint      = Vector2.new(0.5, 0)
-    rarityBadge.Size             = UDim2.fromOffset(180, 30)
-    rarityBadge.Position         = UDim2.new(0.5, 0, 0, 258)
-    rarityBadge.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    rarityBadge.BorderSizePixel  = 0
-    rarityBadge.Visible          = false
-    rarityBadge.ZIndex           = 3
-    rarityBadge.Parent           = container
-    Instance.new("UICorner", rarityBadge).CornerRadius = UDim.new(0, 8)
-    self.rarityBadge = rarityBadge
+    -- ── Buttons row ────────────────────────────────────────────────────────
+    local btnRow = Instance.new("Frame")
+    btnRow.Size            = UDim2.new(1, 0, 0, 64)
+    btnRow.Position        = UDim2.new(0, 0, 0, 52 + REEL_H)
+    btnRow.BackgroundColor3= Color3.fromRGB(18, 18, 26)
+    btnRow.BorderSizePixel = 0
+    btnRow.ZIndex          = 3
+    btnRow.Visible         = false
+    btnRow.Parent          = panel
+    self.btnRow = btnRow
 
-    -- Subtle gradient on badge (top lighter)
-    local badgeGrad = Instance.new("UIGradient")
-    badgeGrad.Rotation    = 90
-    badgeGrad.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0.1),
-        NumberSequenceKeypoint.new(1, 0.5),
-    })
-    badgeGrad.Parent = rarityBadge
+    -- Sell button (outlined green, CS:GO style)
+    local sellBtn = Instance.new("TextButton")
+    sellBtn.Size             = UDim2.new(0.48, -16, 0, 40)
+    sellBtn.Position         = UDim2.new(0.02, 8, 0.5, -20)
+    sellBtn.BackgroundColor3 = Color3.fromRGB(20, 50, 25)
+    sellBtn.Text             = "Sell for $0"
+    sellBtn.TextColor3       = GREEN
+    sellBtn.Font             = Enum.Font.GothamBold
+    sellBtn.TextSize         = 15
+    sellBtn.BorderSizePixel  = 0
+    sellBtn.ZIndex           = 4
+    sellBtn.Parent           = btnRow
+    Instance.new("UICorner", sellBtn).CornerRadius = UDim.new(0, 4)
+    local sellStroke = Instance.new("UIStroke")
+    sellStroke.Color     = GREEN
+    sellStroke.Thickness = 1.5
+    sellStroke.Parent    = sellBtn
+    self.sellBtn   = sellBtn
+    self.sellStroke = sellStroke
 
-    local rarityLbl = Instance.new("TextLabel")
-    rarityLbl.Size                   = UDim2.fromScale(1, 1)
-    rarityLbl.BackgroundTransparency = 1
-    rarityLbl.Font                   = Enum.Font.GothamBold
-    rarityLbl.TextSize               = 14
-    rarityLbl.TextColor3             = TEXT_W
-    rarityLbl.ZIndex                 = 4
-    rarityLbl.Parent                 = rarityBadge
-    self.rarityLbl = rarityLbl
+    -- Reroll button (dark)
+    local rerollBtn = Instance.new("TextButton")
+    rerollBtn.Size             = UDim2.new(0.48, -16, 0, 40)
+    rerollBtn.Position         = UDim2.new(0.50, 8, 0.5, -20)
+    rerollBtn.BackgroundColor3 = Color3.fromRGB(38, 38, 52)
+    rerollBtn.Text             = "Reroll"
+    rerollBtn.TextColor3       = TEXT_W
+    rerollBtn.Font             = Enum.Font.GothamBold
+    rerollBtn.TextSize         = 15
+    rerollBtn.BorderSizePixel  = 0
+    rerollBtn.ZIndex           = 4
+    rerollBtn.Parent           = btnRow
+    Instance.new("UICorner", rerollBtn).CornerRadius = UDim.new(0, 4)
+    local rerollStroke = Instance.new("UIStroke")
+    rerollStroke.Color     = Color3.fromRGB(80, 80, 100)
+    rerollStroke.Thickness = 1.5
+    rerollStroke.Parent    = rerollBtn
+    self.rerollBtn = rerollBtn
 
-    local itemName = Instance.new("TextLabel")
-    itemName.Size                   = UDim2.new(1, -30, 0, 48)
-    itemName.Position               = UDim2.new(0, 15, 0, 294)
-    itemName.BackgroundTransparency = 1
-    itemName.Text                   = ""
-    itemName.TextColor3             = TEXT_W
-    itemName.Font                   = Enum.Font.GothamBold
-    itemName.TextSize               = 22
-    itemName.TextWrapped            = true
-    itemName.Visible                = false
-    itemName.ZIndex                 = 3
-    itemName.Parent                 = container
-    self.itemName = itemName
-
-    local sellLbl = Instance.new("TextLabel")
-    sellLbl.Size                   = UDim2.new(1, -30, 0, 28)
-    sellLbl.Position               = UDim2.new(0, 15, 0, 346)
-    sellLbl.BackgroundTransparency = 1
-    sellLbl.Text                   = ""
-    sellLbl.TextColor3             = TEXT_DIM
-    sellLbl.Font                   = Enum.Font.Gotham
-    sellLbl.TextSize               = 15
-    sellLbl.Visible                = false
-    sellLbl.ZIndex                 = 3
-    sellLbl.Parent                 = container
-    self.sellLbl = sellLbl
-
-    -- ── Commentary label (parented to sg so it floats above everything) ────
-    local commentaryLbl = Instance.new("TextLabel")
-    commentaryLbl.AnchorPoint          = Vector2.new(0.5, 0.5)
-    commentaryLbl.Size                 = UDim2.new(0.7, 0, 0, 70)
-    commentaryLbl.Position             = UDim2.fromScale(0.5, 0.30)
-    commentaryLbl.BackgroundTransparency = 1
-    commentaryLbl.Text                 = ""
-    commentaryLbl.TextColor3           = GOLD
-    commentaryLbl.Font                 = Enum.Font.GothamBold
-    commentaryLbl.TextSize             = 28
-    commentaryLbl.TextTransparency     = 1
-    commentaryLbl.TextStrokeTransparency = 0.6
-    commentaryLbl.TextStrokeColor3     = Color3.fromRGB(0, 0, 0)
-    commentaryLbl.Visible              = false
-    commentaryLbl.ZIndex               = 20
-    commentaryLbl.Parent               = sg
-    self.commentaryLbl = commentaryLbl
-
-    -- ── SELL / KEEP buttons ─────────────────────────────────────────────────
-    local function makeBtn(text, colorTop, colorBot, textColor, xPos, xSize)
-        local btn = Instance.new("TextButton")
-        btn.Size             = UDim2.new(xSize, -12, 0, 50)
-        btn.Position         = UDim2.new(xPos, 6, 1, -66)
-        btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        btn.Text             = text
-        btn.TextColor3       = textColor
-        btn.Font             = Enum.Font.GothamBold
-        btn.TextSize         = 16
-        btn.BorderSizePixel  = 0
-        btn.Visible          = false
-        btn.ZIndex           = 3
-        btn.Parent           = container
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
-        local grad = Instance.new("UIGradient")
-        grad.Rotation = 90
-        grad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, colorTop),
-            ColorSequenceKeypoint.new(1, colorBot),
-        })
-        grad.Parent = btn
-        return btn, grad
-    end
-
-    local sellBtn, sellGrad = makeBtn("SELL",
-        Color3.fromRGB(55, 210, 105), Color3.fromRGB(25, 130, 60),
-        Color3.fromRGB(8, 45, 18), 0, 0.5)
-    local keepBtn, keepGrad = makeBtn("KEEP",
-        Color3.fromRGB(70, 95, 210),  Color3.fromRGB(35, 50, 140),
-        Color3.fromRGB(12, 18, 62), 0.5, 0.5)
-    self.sellBtn  = sellBtn
-    self.keepBtn  = keepBtn
-
+    -- Button hover effects
     sellBtn.MouseEnter:Connect(function()
-        sellGrad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(75, 240, 130)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(35, 165, 80)),
-        })
+        TweenService:Create(sellBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(30, 70, 35)
+        }):Play()
     end)
     sellBtn.MouseLeave:Connect(function()
-        sellGrad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(55, 210, 105)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 130, 60)),
-        })
+        TweenService:Create(sellBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(20, 50, 25)
+        }):Play()
     end)
-    keepBtn.MouseEnter:Connect(function()
-        keepGrad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(95, 125, 245)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(55, 75, 185)),
-        })
+    rerollBtn.MouseEnter:Connect(function()
+        TweenService:Create(rerollBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(55, 55, 75)
+        }):Play()
     end)
-    keepBtn.MouseLeave:Connect(function()
-        keepGrad.Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 95, 210)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(35, 50, 140)),
-        })
+    rerollBtn.MouseLeave:Connect(function()
+        TweenService:Create(rerollBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(38, 38, 52)
+        }):Play()
     end)
 
     sellBtn.MouseButton1Click:Connect(function()
@@ -410,13 +315,34 @@ function OpeningUI:_build()
         self:_close()
         if self.onSell then self.onSell(item) end
     end)
-    keepBtn.MouseButton1Click:Connect(function()
+
+    -- Reroll: item already in inventory (server added it), just open again
+    rerollBtn.MouseButton1Click:Connect(function()
         if not self._currentItem then return end
         if self._glowTween then self._glowTween:Cancel() end
         local item = self._currentItem
+        local pack = self._currentPack
         self:_close()
-        if self.onKeep then self.onKeep(item) end
+        if self.onReroll then self.onReroll(item, pack) end
     end)
+
+    -- ── Commentary label ───────────────────────────────────────────────────
+    local commentaryLbl = Instance.new("TextLabel")
+    commentaryLbl.AnchorPoint            = Vector2.new(0.5, 0.5)
+    commentaryLbl.Size                   = UDim2.new(0.7, 0, 0, 70)
+    commentaryLbl.Position               = UDim2.fromScale(0.5, 0.38)
+    commentaryLbl.BackgroundTransparency = 1
+    commentaryLbl.Text                   = ""
+    commentaryLbl.TextColor3             = GOLD
+    commentaryLbl.Font                   = Enum.Font.GothamBold
+    commentaryLbl.TextSize               = 28
+    commentaryLbl.TextTransparency       = 1
+    commentaryLbl.TextStrokeTransparency = 0.6
+    commentaryLbl.TextStrokeColor3       = Color3.fromRGB(0, 0, 0)
+    commentaryLbl.Visible                = false
+    commentaryLbl.ZIndex                 = 20
+    commentaryLbl.Parent                 = sg
+    self.commentaryLbl = commentaryLbl
 end
 
 -- ---------------------------------------------------------------------------
@@ -445,48 +371,45 @@ function OpeningUI:_makeReelCard(item, slotIndex)
     local card = Instance.new("Frame")
     card.Size            = UDim2.fromOffset(CARD_W, CARD_H)
     card.Position        = UDim2.fromOffset(xOff, yOff)
-    card.BackgroundColor3= Color3.fromRGB(22, 22, 38)
+    card.BackgroundColor3= CARD_BG
     card.BorderSizePixel = 0
-    card.ZIndex          = 4
+    card.ZIndex          = 5
     card.Parent          = self.strip
-    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", card).CornerRadius = UDim.new(0, 4)
 
-    local topBar = Instance.new("Frame")
-    topBar.Size            = UDim2.new(1, 0, 0, 5)
-    topBar.BackgroundColor3= rarityInfo.color
-    topBar.BorderSizePixel = 0
-    topBar.ZIndex          = 5
-    topBar.Parent          = card
-    Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 8)
-    local topBarFill = Instance.new("Frame")
-    topBarFill.Size            = UDim2.new(1, 0, 0.5, 0)
-    topBarFill.Position        = UDim2.new(0, 0, 0.5, 0)
-    topBarFill.BackgroundColor3= rarityInfo.color
-    topBarFill.BorderSizePixel = 0
-    topBarFill.ZIndex          = 5
-    topBarFill.Parent          = topBar
+    -- Rarity color left bar (CS:GO style)
+    local bar = Instance.new("Frame")
+    bar.Size            = UDim2.new(0, 4, 1, 0)
+    bar.BackgroundColor3= rarityInfo.color
+    bar.BorderSizePixel = 0
+    bar.ZIndex          = 6
+    bar.Parent          = card
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 4)
 
+    -- Subtle rarity tint
     local tint = Instance.new("Frame")
     tint.Size                   = UDim2.fromScale(1, 1)
     tint.BackgroundColor3       = rarityInfo.color
-    tint.BackgroundTransparency = 0.82
+    tint.BackgroundTransparency = 0.88
     tint.BorderSizePixel        = 0
-    tint.ZIndex                 = 4
+    tint.ZIndex                 = 5
     tint.Parent                 = card
-    Instance.new("UICorner", tint).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", tint).CornerRadius = UDim.new(0, 4)
 
+    -- Item image
     local img = Instance.new("ImageLabel")
-    img.Size                = UDim2.new(1, -12, 0, 96)
-    img.Position            = UDim2.new(0, 6, 0, 12)
+    img.Size                = UDim2.new(1, -14, 0, 108)
+    img.Position            = UDim2.new(0, 8, 0, 8)
     img.BackgroundTransparency = 1
     img.Image               = item.imageId
     img.ScaleType           = Enum.ScaleType.Fit
-    img.ZIndex              = 5
+    img.ZIndex              = 6
     img.Parent              = card
 
+    -- Item name
     local nameLbl = Instance.new("TextLabel")
-    nameLbl.Size                  = UDim2.new(1, -8, 0, 46)
-    nameLbl.Position              = UDim2.new(0, 4, 0, 112)
+    nameLbl.Size                  = UDim2.new(1, -14, 0, 38)
+    nameLbl.Position              = UDim2.new(0, 8, 0, 120)
     nameLbl.BackgroundTransparency= 1
     nameLbl.Text                  = item.name
     nameLbl.TextColor3            = TEXT_W
@@ -494,18 +417,19 @@ function OpeningUI:_makeReelCard(item, slotIndex)
     nameLbl.TextSize              = 11
     nameLbl.TextWrapped           = true
     nameLbl.TextYAlignment        = Enum.TextYAlignment.Top
-    nameLbl.ZIndex                = 5
+    nameLbl.ZIndex                = 6
     nameLbl.Parent                = card
 
+    -- Value
     local valLbl = Instance.new("TextLabel")
-    valLbl.Size                  = UDim2.new(1, -8, 0, 18)
-    valLbl.Position              = UDim2.new(0, 4, 1, -20)
+    valLbl.Size                  = UDim2.new(1, -14, 0, 18)
+    valLbl.Position              = UDim2.new(0, 8, 1, -22)
     valLbl.BackgroundTransparency= 1
     valLbl.Text                  = "$" .. PackModule.formatNumber(item.sellValue)
-    valLbl.TextColor3            = GOLD
+    valLbl.TextColor3            = rarityInfo.color
     valLbl.Font                  = Enum.Font.GothamBold
     valLbl.TextSize              = 11
-    valLbl.ZIndex                = 5
+    valLbl.ZIndex                = 6
     valLbl.Parent                = card
 
     return card
@@ -519,7 +443,6 @@ function OpeningUI:_playHitEffect(item, winnerCard)
     local color = rarityInfo.color
     local cfg   = HIT_FX[item.rarity] or HIT_FX.Common
 
-    -- 1. Flash overlay (multiple flashes for Epic/Legendary)
     for i = 1, cfg.flashes do
         task.delay((i - 1) * 0.22, function()
             if not self.flashOverlay.Parent then return end
@@ -537,7 +460,6 @@ function OpeningUI:_playHitEffect(item, winnerCard)
         end)
     end
 
-    -- 2. Bounce the winner card via UIScale
     if winnerCard and winnerCard.Parent then
         local uiScale = Instance.new("UIScale")
         uiScale.Scale  = 1
@@ -554,46 +476,44 @@ function OpeningUI:_playHitEffect(item, winnerCard)
         end)
     end
 
-    -- 3. Container shake (Rare+)
     if cfg.shakes > 0 then
         task.spawn(function()
             for _ = 1, cfg.shakes do
-                local dx = (math.random() - 0.5) * 18
-                local dy = (math.random() - 0.5) * 12
-                TweenService:Create(self.container,
+                local dx = (math.random() - 0.5) * 14
+                local dy = (math.random() - 0.5) * 8
+                TweenService:Create(self.panel,
                     TweenInfo.new(0.04, Enum.EasingStyle.Sine),
                     { Position = UDim2.new(0.5, dx, 0.5, dy) }):Play()
                 task.wait(0.04)
             end
-            TweenService:Create(self.container, TweenInfo.new(0.12), {
+            TweenService:Create(self.panel, TweenInfo.new(0.12), {
                 Position = UDim2.fromScale(0.5, 0.5)
             }):Play()
         end)
     end
 
-    -- 4. Sparks radiating from reel centre (Rare+)
     if cfg.sparks > 0 then
-        -- Reel centre as fraction of container: x=50%, y=(56+95)/570≈26.5%
         local cx = 0.5
-        local cy = (56 + REEL_H * 0.5) / 570
+        local cy = (52 + REEL_H * 0.5) / 420
         for i = 1, cfg.sparks do
             task.delay(i * 0.028, function()
-                if not self.container.Parent then return end
+                if not self.panel.Parent then return end
                 local spark  = Instance.new("Frame")
                 local angle  = (2 * math.pi * i / cfg.sparks) + (math.random() - 0.5) * 0.8
-                local dist   = math.random(55, 115)
+                local dist   = math.random(50, 110)
                 spark.AnchorPoint      = Vector2.new(0.5, 0.5)
-                spark.Size             = UDim2.fromOffset(7, 7)
+                spark.Size             = UDim2.fromOffset(6, 6)
                 spark.Position         = UDim2.new(cx, 0, cy, 0)
                 spark.BackgroundColor3 = color
                 spark.BorderSizePixel  = 0
                 spark.ZIndex           = 6
-                spark.Parent           = self.container
+                spark.Parent           = self.panel
                 Instance.new("UICorner", spark).CornerRadius = UDim.new(1, 0)
-                TweenService:Create(spark, TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    Position            = UDim2.new(cx, math.cos(angle) * dist, cy, math.sin(angle) * dist),
+                TweenService:Create(spark,
+                    TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Position            = UDim2.new(cx, math.cos(angle)*dist, cy, math.sin(angle)*dist),
                     BackgroundTransparency = 1,
-                    Size                = UDim2.fromOffset(3, 3),
+                    Size                = UDim2.fromOffset(2, 2),
                 }):Play()
                 task.delay(0.57, function()
                     if spark and spark.Parent then spark:Destroy() end
@@ -602,17 +522,13 @@ function OpeningUI:_playHitEffect(item, winnerCard)
         end
     end
 
-    -- 5. Legendary: rapid glow border pulses
+    -- Legendary: pulse the border stroke
     if item.rarity == "Legendary" then
         task.spawn(function()
             for _ = 1, 3 do
-                TweenService:Create(self.glowBorder, TweenInfo.new(0.1), {
-                    Size = UDim2.fromOffset(876, 606)
-                }):Play()
+                TweenService:Create(self.glowStroke, TweenInfo.new(0.1), { Thickness = 5 }):Play()
                 task.wait(0.12)
-                TweenService:Create(self.glowBorder, TweenInfo.new(0.1), {
-                    Size = UDim2.fromOffset(852, 582)
-                }):Play()
+                TweenService:Create(self.glowStroke, TweenInfo.new(0.1), { Thickness = 2 }):Play()
                 task.wait(0.13)
             end
         end)
@@ -631,21 +547,22 @@ function OpeningUI:_showCommentary(rarity, color)
     self.commentaryLbl.TextColor3       = color
     self.commentaryLbl.TextSize         = cfg.commentSize
     self.commentaryLbl.TextTransparency = 1
-    self.commentaryLbl.Position         = UDim2.fromScale(0.5, 0.32)
+    self.commentaryLbl.Position         = UDim2.fromScale(0.5, 0.42)
     self.commentaryLbl.Visible          = true
 
-    TweenService:Create(self.commentaryLbl, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    TweenService:Create(self.commentaryLbl,
+        TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         TextTransparency = 0,
-        Position         = UDim2.fromScale(0.5, 0.29),
+        Position         = UDim2.fromScale(0.5, 0.38),
     }):Play()
 
     task.delay(cfg.commentDuration, function()
         if not self.commentaryLbl.Parent then return end
-        TweenService:Create(self.commentaryLbl, TweenInfo.new(0.45), {
+        TweenService:Create(self.commentaryLbl, TweenInfo.new(0.4), {
             TextTransparency = 1,
-            Position         = UDim2.fromScale(0.5, 0.24),
+            Position         = UDim2.fromScale(0.5, 0.33),
         }):Play()
-        task.delay(0.5, function()
+        task.delay(0.45, function()
             if self.commentaryLbl.Parent then
                 self.commentaryLbl.Visible = false
             end
@@ -654,51 +571,48 @@ function OpeningUI:_showCommentary(rarity, color)
 end
 
 -- ---------------------------------------------------------------------------
--- REEL STOP — called when the spin tween finishes
+-- REEL STOP
 -- ---------------------------------------------------------------------------
 function OpeningUI:_onReelStop(item, winnerCard)
     local rarityInfo = PackModule.getItemRarity(item.rarity)
+    local color = rarityInfo.color
 
-    -- Pulsing glow stroke on winner card
+    -- Pulsing stroke on winner card
     local stroke = Instance.new("UIStroke")
-    stroke.Color     = rarityInfo.color
-    stroke.Thickness = 3
+    stroke.Color     = color
+    stroke.Thickness = 2
     stroke.Parent    = winnerCard
     self._glowTween  = TweenService:Create(stroke,
-        TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-        { Thickness = 8 })
+        TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        { Thickness = 6 })
     self._glowTween:Play()
 
-    -- Glow border colour
-    TweenService:Create(self.glowBorder, TweenInfo.new(0.4), {
-        BackgroundColor3 = rarityInfo.color
+    -- Colour the panel border
+    TweenService:Create(self.glowStroke, TweenInfo.new(0.4), {
+        Color = color, Thickness = 2
     }):Play()
 
-    self.header.Text = "You got..."
+    -- Show item name strip
+    self.spinLbl.Visible         = false
+    self.nameStrip.Visible       = true
+    self.itemNameLbl.Text        = item.name
+    self.itemNameLbl.TextColor3  = TEXT_W
+    self.rarityTagLbl.Text       = rarityInfo.displayName:upper()
+    self.rarityTagLbl.TextColor3 = color
 
-    -- Fire hit effects and commentary immediately
+    -- Fade in name strip
+    self.nameStrip.BackgroundTransparency = 1
+    TweenService:Create(self.nameStrip, TweenInfo.new(0.3), {
+        BackgroundTransparency = 0
+    }):Play()
+
     self:_playHitEffect(item, winnerCard)
-    self:_showCommentary(item.rarity, rarityInfo.color)
+    self:_showCommentary(item.rarity, color)
 
-    -- Staggered info reveal
-    self.rarityBadge.BackgroundColor3 = rarityInfo.color
-    self.rarityLbl.Text               = rarityInfo.displayName:upper()
-    self.rarityBadge.Visible          = true
-
-    task.delay(0.2, function()
-        self.itemName.Text    = item.name
-        self.itemName.Visible = true
-    end)
-
-    task.delay(0.8, function()
-        self.sellLbl.Text    = "Sell value:  $" .. PackModule.formatNumber(item.sellValue)
-        self.sellLbl.Visible = true
-    end)
-
-    self.sellBtn.Text = "SELL  $" .. PackModule.formatNumber(item.sellValue)
-    task.delay(0.35, function()
-        self.sellBtn.Visible = true
-        self.keepBtn.Visible = true
+    -- Show buttons
+    self.sellBtn.Text = "Sell for $" .. PackModule.formatNumber(item.sellValue)
+    task.delay(0.3, function()
+        self.btnRow.Visible = true
     end)
 end
 
@@ -709,27 +623,22 @@ function OpeningUI:showOpening(pack)
     self._currentPack = pack
     self._currentItem = nil
 
-    self.rarityBadge.Visible  = false
-    self.itemName.Visible     = false
-    self.sellLbl.Visible      = false
-    self.sellBtn.Visible      = false
-    self.keepBtn.Visible      = false
+    self.nameStrip.Visible  = false
+    self.spinLbl.Visible    = true
+    self.spinLbl.Text       = "Opening " .. pack.name .. "..."
+    self.btnRow.Visible     = false
     self.commentaryLbl.Visible = false
-    self.header.Text          = "Opening " .. pack.name .. "..."
-    self.strip.Position       = UDim2.fromOffset(9999, 0)
+    self.strip.Position     = UDim2.fromOffset(9999, 0)
 
     local tier = PackModule.getPackTier(pack.tier)
-    self.glowBorder.BackgroundColor3 = tier.glowColor
+    self.glowStroke.Color = tier.glowColor
 
+    self.panel.Size     = UDim2.new(0.92, 0, 0, 4)
     self.screenGui.Enabled = true
-    self.container.Size    = UDim2.fromOffset(4, 4)
-    self.glowBorder.Size   = UDim2.fromOffset(8, 8)
-    TweenService:Create(self.container,
-        TweenInfo.new(0.4, Enum.EasingStyle.Back),
-        { Size = UDim2.fromOffset(840, 570) }):Play()
-    TweenService:Create(self.glowBorder,
-        TweenInfo.new(0.4, Enum.EasingStyle.Back),
-        { Size = UDim2.fromOffset(852, 582) }):Play()
+
+    TweenService:Create(self.panel,
+        TweenInfo.new(0.35, Enum.EasingStyle.Back),
+        { Size = UDim2.new(0.92, 0, 0, 420) }):Play()
 end
 
 function OpeningUI:revealItem(item)
@@ -772,24 +681,21 @@ function OpeningUI:revealItem(item)
 end
 
 function OpeningUI:showError(msg)
-    self.header.Text = msg
+    self.spinLbl.Text = msg
     task.delay(2.5, function()
         self:_close()
-        if self.onKeep then self.onKeep(nil) end
+        if self.onReroll then self.onReroll(nil, self._currentPack) end
     end)
 end
 
 function OpeningUI:_close()
     if self._glowTween then self._glowTween:Cancel(); self._glowTween = nil end
     self.commentaryLbl.Visible = false
-    local t1 = TweenService:Create(self.container,
-        TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-        { Size = UDim2.fromOffset(4, 4) })
-    local t2 = TweenService:Create(self.glowBorder,
-        TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-        { Size = UDim2.fromOffset(8, 8) })
-    t1.Completed:Connect(function() self.screenGui.Enabled = false end)
-    t1:Play(); t2:Play()
+    local t = TweenService:Create(self.panel,
+        TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        { Size = UDim2.new(0.92, 0, 0, 4) })
+    t.Completed:Connect(function() self.screenGui.Enabled = false end)
+    t:Play()
 end
 
 return OpeningUI
