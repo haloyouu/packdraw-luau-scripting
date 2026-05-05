@@ -8,12 +8,14 @@
 local TweenService = game:GetService("TweenService")
 local PackModule   = require(script.Parent.Parent.PackModule)
 
-local DARK_BG   = Color3.fromRGB(12,  12,  22)
-local PANEL_BG  = Color3.fromRGB(20,  20,  36)
-local HEADER_BG = Color3.fromRGB(26,  26,  48)
-local CARD_BG   = Color3.fromRGB(28,  28,  48)
+local FONT_BOLD = Font.new("rbxasset://fonts/families/ComicNeueAngular.json", Enum.FontWeight.Bold)
+local FONT_REG  = Font.new("rbxasset://fonts/families/ComicNeueAngular.json")
+local DARK_BG   = Color3.fromRGB(14,  14,  14)
+local PANEL_BG  = Color3.fromRGB(28,  28,  28)
+local HEADER_BG = Color3.fromRGB(40,  40,  40)
+local CARD_BG   = Color3.fromRGB(46,  46,  46)
 local TEXT_W    = Color3.fromRGB(255, 255, 255)
-local TEXT_DIM  = Color3.fromRGB(160, 160, 200)
+local TEXT_DIM  = Color3.fromRGB(170, 170, 170)
 local GOLD      = Color3.fromRGB(255, 220,  50)
 local SELL_CLR  = Color3.fromRGB( 50, 200, 100)
 local SELL_HOV  = Color3.fromRGB( 70, 230, 120)
@@ -59,6 +61,13 @@ function InventoryUI:_build()
     panel.BorderSizePixel = 0
     panel.Parent          = sg
     Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 14)
+    local panelGrad = Instance.new("UIGradient")
+    panelGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 38)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20)),
+    })
+    panelGrad.Rotation = 90
+    panelGrad.Parent = panel
     self.panel = panel
 
     -- Header
@@ -82,7 +91,7 @@ function InventoryUI:_build()
     title.BackgroundTransparency = 1
     title.Text                = "MY INVENTORY"
     title.TextColor3          = TEXT_W
-    title.Font                = Enum.Font.GothamBold
+    title.FontFace            = FONT_BOLD
     title.TextSize            = 22
     title.TextXAlignment      = Enum.TextXAlignment.Left
     title.Parent              = header
@@ -94,7 +103,7 @@ function InventoryUI:_build()
     balance.BackgroundTransparency = 1
     balance.Text                 = "$0"
     balance.TextColor3           = GOLD
-    balance.Font                 = Enum.Font.GothamBold
+    balance.FontFace             = FONT_BOLD
     balance.TextSize             = 18
     balance.Parent               = header
     self.balanceLabel = balance
@@ -105,7 +114,7 @@ function InventoryUI:_build()
     closeBtn.BackgroundColor3= Color3.fromRGB(200, 50, 50)
     closeBtn.Text            = "X"
     closeBtn.TextColor3      = TEXT_W
-    closeBtn.Font            = Enum.Font.GothamBold
+    closeBtn.FontFace        = FONT_BOLD
     closeBtn.TextSize        = 16
     closeBtn.BorderSizePixel = 0
     closeBtn.Parent          = header
@@ -120,7 +129,7 @@ function InventoryUI:_build()
     emptyLbl.BackgroundTransparency= 1
     emptyLbl.Text                  = "Your inventory is empty.\nOpen some packs!"
     emptyLbl.TextColor3            = TEXT_DIM
-    emptyLbl.Font                  = Enum.Font.Gotham
+    emptyLbl.FontFace              = FONT_REG
     emptyLbl.TextSize              = 18
     emptyLbl.Visible               = false
     emptyLbl.Parent                = panel
@@ -134,14 +143,14 @@ function InventoryUI:_build()
     scroll.BackgroundTransparency= 1
     scroll.BorderSizePixel       = 0
     scroll.ScrollBarThickness    = 5
-    scroll.ScrollBarImageColor3  = Color3.fromRGB(90, 90, 140)
+    scroll.ScrollBarImageColor3  = Color3.fromRGB(90, 90, 90)
     scroll.CanvasSize            = UDim2.new(0, 0, 0, 0)
     scroll.AutomaticCanvasSize   = Enum.AutomaticSize.Y
     scroll.Parent                = panel
     self.scroll = scroll
 
     local grid = Instance.new("UIGridLayout")
-    grid.CellSize            = UDim2.new(0, 200, 0, 320)   -- taller to fit both buttons
+    grid.CellSize            = UDim2.new(0, 200, 0, 320)
     grid.CellPadding         = UDim2.new(0, 16, 0, 16)
     grid.SortOrder           = Enum.SortOrder.LayoutOrder
     grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -195,7 +204,7 @@ function InventoryUI:_makeCard(itemId, item, order)
     badgeLbl.BackgroundTransparency = 1
     badgeLbl.Text                 = item.rarity:upper()
     badgeLbl.TextColor3           = TEXT_W
-    badgeLbl.Font                 = Enum.Font.GothamBold
+    badgeLbl.FontFace             = FONT_BOLD
     badgeLbl.TextSize             = 11
     badgeLbl.ZIndex               = 4
     badgeLbl.Parent               = badge
@@ -219,7 +228,7 @@ function InventoryUI:_makeCard(itemId, item, order)
     nameLbl.BackgroundTransparency= 1
     nameLbl.Text                  = item.name
     nameLbl.TextColor3            = TEXT_W
-    nameLbl.Font                  = Enum.Font.GothamBold
+    nameLbl.FontFace              = FONT_BOLD
     nameLbl.TextSize              = 13
     nameLbl.TextWrapped           = true
     nameLbl.TextYAlignment        = Enum.TextYAlignment.Top
@@ -232,17 +241,17 @@ function InventoryUI:_makeCard(itemId, item, order)
     valueLbl.BackgroundTransparency= 1
     valueLbl.Text                  = "Sell: $" .. PackModule.formatNumber(item.sellValue)
     valueLbl.TextColor3            = GOLD
-    valueLbl.Font                  = Enum.Font.GothamBold
+    valueLbl.FontFace              = FONT_BOLD
     valueLbl.TextSize              = 12
     valueLbl.Parent                = card
 
-    -- ── SELL button (BUG FIX: card only removed after server confirms) ───
+    -- ── SELL button ──────────────────────────────────────────────────────
     local sellBtn = Instance.new("TextButton")
     sellBtn.Size            = UDim2.new(1, -20, 0, 34)
     sellBtn.Position        = UDim2.new(0, 10, 1, -82)
     sellBtn.BackgroundColor3= SELL_CLR
     sellBtn.BorderSizePixel = 0
-    sellBtn.Font            = Enum.Font.GothamBold
+    sellBtn.FontFace        = FONT_BOLD
     sellBtn.TextSize        = 13
     sellBtn.TextColor3      = TEXT_W
     sellBtn.Text            = "SELL"
@@ -256,7 +265,6 @@ function InventoryUI:_makeCard(itemId, item, order)
         TweenService:Create(sellBtn, TweenInfo.new(0.12), { BackgroundColor3 = SELL_CLR }):Play()
     end)
     sellBtn.MouseButton1Click:Connect(function()
-        -- Disable button immediately to prevent double-clicks
         sellBtn.Active = false
         sellBtn.Text   = "Selling..."
         sellBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
@@ -267,25 +275,23 @@ function InventoryUI:_makeCard(itemId, item, order)
         end
 
         if success then
-            -- Server confirmed → remove card
             card:Destroy()
             self.itemCards[itemId] = nil
             self:_checkEmpty()
         else
-            -- Server rejected → restore button
             sellBtn.Active           = true
             sellBtn.Text             = "SELL"
             sellBtn.BackgroundColor3 = SELL_CLR
         end
     end)
 
-    -- ── FLEX button ─────────────────────────────────────────────────────
+    -- ── FLEX button ──────────────────────────────────────────────────────
     local flexBtn = Instance.new("TextButton")
     flexBtn.Size            = UDim2.new(1, -20, 0, 34)
     flexBtn.Position        = UDim2.new(0, 10, 1, -44)
     flexBtn.BackgroundColor3= FLEX_CLR
     flexBtn.BorderSizePixel = 0
-    flexBtn.Font            = Enum.Font.GothamBold
+    flexBtn.FontFace        = FONT_BOLD
     flexBtn.TextSize        = 13
     flexBtn.TextColor3      = TEXT_W
     flexBtn.Text            = "FLEX IT"

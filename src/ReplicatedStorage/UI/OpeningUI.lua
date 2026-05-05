@@ -16,9 +16,9 @@ local REEL_H      = 200
 local TOTAL_CARDS = 42
 local WINNER_IDX  = 34
 
-local BG        = Color3.fromRGB( 18,  18,  18)
-local REEL_BG   = Color3.fromRGB( 12,  12,  12)
-local CARD_BG   = Color3.fromRGB( 36,  36,  36)
+local BG        = Color3.fromRGB( 28,  28,  28)
+local REEL_BG   = Color3.fromRGB( 20,  20,  20)
+local CARD_BG   = Color3.fromRGB( 46,  46,  46)
 local TEXT_W    = Color3.fromRGB(255, 255, 255)
 local TEXT_DIM  = Color3.fromRGB(170, 170, 170)
 local GOLD      = Color3.fromRGB(255, 220,  50)
@@ -87,11 +87,18 @@ function OpeningUI:_build()
     panel.Size             = UDim2.new(0.92, 0, 0, 420)
     panel.Position         = UDim2.fromScale(0.5, 0.5)
     panel.BackgroundColor3       = BG
-    panel.BackgroundTransparency = 1
+    panel.BackgroundTransparency = 0
     panel.BorderSizePixel        = 0
     panel.ZIndex                 = 2
     panel.Parent                 = sg
     Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 6)
+    local panelGrad = Instance.new("UIGradient")
+    panelGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 38)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20)),
+    })
+    panelGrad.Rotation = 90
+    panelGrad.Parent = panel
     self.panel = panel
 
     -- Glow border (coloured outline that pulses on win)

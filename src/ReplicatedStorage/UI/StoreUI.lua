@@ -8,12 +8,14 @@
 local TweenService = game:GetService("TweenService")
 local PackModule   = require(script.Parent.Parent.PackModule)
 
-local DARK_BG   = Color3.fromRGB(12,  12,  22)
-local PANEL_BG  = Color3.fromRGB(20,  20,  36)
-local HEADER_BG = Color3.fromRGB(26,  26,  48)
-local CARD_BG   = Color3.fromRGB(28,  28,  48)
+local FONT_BOLD = Font.new("rbxasset://fonts/families/ComicNeueAngular.json", Enum.FontWeight.Bold)
+local FONT_REG  = Font.new("rbxasset://fonts/families/ComicNeueAngular.json")
+local DARK_BG   = Color3.fromRGB(14,  14,  14)
+local PANEL_BG  = Color3.fromRGB(28,  28,  28)
+local HEADER_BG = Color3.fromRGB(40,  40,  40)
+local CARD_BG   = Color3.fromRGB(46,  46,  46)
 local TEXT_W    = Color3.fromRGB(255, 255, 255)
-local TEXT_DIM  = Color3.fromRGB(160, 160, 200)
+local TEXT_DIM  = Color3.fromRGB(170, 170, 170)
 local GOLD      = Color3.fromRGB(255, 220,  50)
 
 -- ---------------------------------------------------------------------------
@@ -25,14 +27,11 @@ function StoreUI.new(playerGui)
     self.playerGui     = playerGui
     self.packCards     = {}         -- [packId] = { card, openBtn, pack }
     self.onPackSelect  = nil        -- callback(packId)
-    self.onPackPreview = nil        -- callback(packId)  ← preview modal
+    self.onPackPreview = nil        -- callback(packId)
     self:_build()
     return self
 end
 
--- ---------------------------------------------------------------------------
--- Build the static skeleton (title bar, scroll area).
--- Pack cards are populated separately via :populate().
 -- ---------------------------------------------------------------------------
 function StoreUI:_build()
     local sg = Instance.new("ScreenGui")
@@ -61,6 +60,13 @@ function StoreUI:_build()
     panel.Parent          = sg
     self.panel = panel
     Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 14)
+    local panelGrad = Instance.new("UIGradient")
+    panelGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 38)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20)),
+    })
+    panelGrad.Rotation = 90
+    panelGrad.Parent = panel
 
     -- ---- Header bar -------------------------------------------------------
     local header = Instance.new("Frame")
@@ -70,7 +76,6 @@ function StoreUI:_build()
     header.Parent          = panel
     Instance.new("UICorner", header).CornerRadius = UDim.new(0, 14)
 
-    -- Cover rounded bottom corners of header
     local headerFill = Instance.new("Frame")
     headerFill.Size            = UDim2.new(1, 0, 0, 14)
     headerFill.Position        = UDim2.new(0, 0, 1, -14)
@@ -78,19 +83,17 @@ function StoreUI:_build()
     headerFill.BorderSizePixel = 0
     headerFill.Parent          = header
 
-    -- Title
     local title = Instance.new("TextLabel")
     title.Size                = UDim2.new(0.5, 0, 1, 0)
     title.Position            = UDim2.new(0, 18, 0, 0)
     title.BackgroundTransparency = 1
     title.Text                = "PACK STORE"
     title.TextColor3          = TEXT_W
-    title.Font                = Enum.Font.GothamBold
+    title.FontFace            = FONT_BOLD
     title.TextSize            = 22
     title.TextXAlignment      = Enum.TextXAlignment.Left
     title.Parent              = header
 
-    -- Balance label (centred in header)
     local balance = Instance.new("TextLabel")
     balance.Name                 = "Balance"
     balance.Size                 = UDim2.new(0, 220, 1, 0)
@@ -98,19 +101,18 @@ function StoreUI:_build()
     balance.BackgroundTransparency = 1
     balance.Text                 = "$0"
     balance.TextColor3           = GOLD
-    balance.Font                 = Enum.Font.GothamBold
+    balance.FontFace             = FONT_BOLD
     balance.TextSize             = 18
     balance.Parent               = header
     self.balanceLabel = balance
 
-    -- Close button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size            = UDim2.new(0, 38, 0, 38)
     closeBtn.Position        = UDim2.new(1, -52, 0.5, -19)
     closeBtn.BackgroundColor3= Color3.fromRGB(200, 50, 50)
     closeBtn.Text            = "X"
     closeBtn.TextColor3      = TEXT_W
-    closeBtn.Font            = Enum.Font.GothamBold
+    closeBtn.FontFace        = FONT_BOLD
     closeBtn.TextSize        = 16
     closeBtn.BorderSizePixel = 0
     closeBtn.Parent          = header
@@ -125,7 +127,7 @@ function StoreUI:_build()
     scroll.BackgroundTransparency= 1
     scroll.BorderSizePixel       = 0
     scroll.ScrollBarThickness    = 5
-    scroll.ScrollBarImageColor3  = Color3.fromRGB(90, 90, 140)
+    scroll.ScrollBarImageColor3  = Color3.fromRGB(90, 90, 90)
     scroll.CanvasSize            = UDim2.new(0, 0, 0, 0)
     scroll.AutomaticCanvasSize   = Enum.AutomaticSize.Y
     scroll.Parent                = panel
@@ -145,14 +147,9 @@ function StoreUI:_build()
 end
 
 -- ---------------------------------------------------------------------------
--- Create one pack card inside the scroll frame.
--- ---------------------------------------------------------------------------
 function StoreUI:_makeCard(pack, order: number)
     local tier = PackModule.getPackTier(pack.tier)
 
-    -- Card is a TextButton so clicking anywhere on it (not the open button)
-    -- opens the preview modal. In Roblox GUI, child buttons absorb their own
-    -- clicks and do NOT propagate to the parent button.
     local card = Instance.new("TextButton")
     card.Name             = pack.id
     card.BackgroundColor3 = CARD_BG
@@ -177,7 +174,6 @@ function StoreUI:_makeCard(pack, order: number)
     strip.ZIndex          = 2
     strip.Parent          = card
     Instance.new("UICorner", strip).CornerRadius = UDim.new(0, 12)
-    -- hide bottom rounding of the strip
     local stripFill = Instance.new("Frame")
     stripFill.Size            = UDim2.new(1, 0, 0.5, 0)
     stripFill.Position        = UDim2.new(0, 0, 0.5, 0)
@@ -200,7 +196,7 @@ function StoreUI:_makeCard(pack, order: number)
     badgeLbl.BackgroundTransparency = 1
     badgeLbl.Text                 = tier.displayName
     badgeLbl.TextColor3           = tier.textColor
-    badgeLbl.Font                 = Enum.Font.GothamBold
+    badgeLbl.FontFace             = FONT_BOLD
     badgeLbl.TextSize             = 12
     badgeLbl.ZIndex               = 4
     badgeLbl.Parent               = badge
@@ -209,7 +205,7 @@ function StoreUI:_makeCard(pack, order: number)
     local img = Instance.new("ImageLabel")
     img.Size            = UDim2.new(1, -20, 0, 130)
     img.Position        = UDim2.new(0, 10, 0, 44)
-    img.BackgroundColor3= Color3.fromRGB(35, 35, 55)
+    img.BackgroundColor3= Color3.fromRGB(42, 42, 42)
     img.BorderSizePixel = 0
     img.Image           = pack.imageId
     img.ScaleType       = Enum.ScaleType.Fit
@@ -223,7 +219,7 @@ function StoreUI:_makeCard(pack, order: number)
     nameLbl.BackgroundTransparency= 1
     nameLbl.Text                  = pack.name
     nameLbl.TextColor3            = TEXT_W
-    nameLbl.Font                  = Enum.Font.GothamBold
+    nameLbl.FontFace              = FONT_BOLD
     nameLbl.TextSize              = 15
     nameLbl.TextWrapped           = true
     nameLbl.Parent                = card
@@ -235,7 +231,7 @@ function StoreUI:_makeCard(pack, order: number)
     descLbl.BackgroundTransparency= 1
     descLbl.Text                  = pack.description
     descLbl.TextColor3            = TEXT_DIM
-    descLbl.Font                  = Enum.Font.Gotham
+    descLbl.FontFace              = FONT_REG
     descLbl.TextSize              = 11
     descLbl.TextWrapped           = true
     descLbl.TextYAlignment        = Enum.TextYAlignment.Top
@@ -248,7 +244,7 @@ function StoreUI:_makeCard(pack, order: number)
     openBtn.Position        = UDim2.new(0, 10, 1, -48)
     openBtn.BackgroundColor3= tier.primaryColor
     openBtn.BorderSizePixel = 0
-    openBtn.Font            = Enum.Font.GothamBold
+    openBtn.FontFace        = FONT_BOLD
     openBtn.TextSize        = 14
     openBtn.TextColor3      = tier.textColor
     openBtn.Parent          = card
@@ -260,7 +256,6 @@ function StoreUI:_makeCard(pack, order: number)
         openBtn.Text = "OPEN  —  $" .. PackModule.formatNumber(pack.price)
     end
 
-    -- Hover effect
     openBtn.MouseEnter:Connect(function()
         TweenService:Create(openBtn, TweenInfo.new(0.15), {
             BackgroundColor3 = tier.glowColor
@@ -286,7 +281,6 @@ end
 -- Public API
 -- ---------------------------------------------------------------------------
 
--- Rebuild pack grid from PackConfig (call when store opens or data changes)
 function StoreUI:populate()
     for _, entry in pairs(self.packCards) do
         entry.card:Destroy()
@@ -298,13 +292,10 @@ function StoreUI:populate()
     end
 end
 
--- Update the balance display in the header
 function StoreUI:updateBalance(balance: number)
     self.balanceLabel.Text = "$" .. PackModule.formatNumber(balance)
 end
 
--- Refresh open-button text for packs that have a cooldown
--- `cooldowns` = { [packId] = lastOpenTimestamp }
 function StoreUI:updateCooldowns(cooldowns)
     local now = os.time()
     for packId, entry in pairs(self.packCards) do
@@ -321,7 +312,6 @@ function StoreUI:updateCooldowns(cooldowns)
                         rem % 60)
                     entry.openBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
                 else
-                    -- Cooldown expired
                     entry.openBtn.Text = "FREE  —  OPEN"
                     local tier = PackModule.getPackTier(pack.tier)
                     entry.openBtn.BackgroundColor3 = tier.primaryColor

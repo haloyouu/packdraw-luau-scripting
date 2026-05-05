@@ -7,12 +7,14 @@ local TweenService   = game:GetService("TweenService")
 local PackModule     = require(script.Parent.Parent.PackModule)
 local BusinessConfig = require(script.Parent.Parent.BusinessConfig)
 
-local PANEL_BG  = Color3.fromRGB(20,  20,  36)
-local HEADER_BG = Color3.fromRGB(26,  26,  48)
-local DARK_BG   = Color3.fromRGB(12,  12,  22)
-local CARD_BG   = Color3.fromRGB(28,  28,  48)
+local FONT_BOLD = Font.new("rbxasset://fonts/families/ComicNeueAngular.json", Enum.FontWeight.Bold)
+local FONT_REG  = Font.new("rbxasset://fonts/families/ComicNeueAngular.json")
+local PANEL_BG  = Color3.fromRGB(28,  28,  28)
+local HEADER_BG = Color3.fromRGB(40,  40,  40)
+local DARK_BG   = Color3.fromRGB(14,  14,  14)
+local CARD_BG   = Color3.fromRGB(46,  46,  46)
 local TEXT_W    = Color3.fromRGB(255, 255, 255)
-local TEXT_DIM  = Color3.fromRGB(160, 160, 200)
+local TEXT_DIM  = Color3.fromRGB(170, 170, 170)
 local GOLD      = Color3.fromRGB(255, 220,  50)
 local GREEN     = Color3.fromRGB( 80, 220,  80)
 
@@ -54,6 +56,13 @@ function BusinessUI:_build()
     panel.BorderSizePixel  = 0
     panel.Parent           = sg
     Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 14)
+    local panelGrad = Instance.new("UIGradient")
+    panelGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 38)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20)),
+    })
+    panelGrad.Rotation = 90
+    panelGrad.Parent = panel
     self.panel = panel
 
     -- ── Header ────────────────────────────────────────────────────────────
@@ -77,7 +86,7 @@ function BusinessUI:_build()
     title.BackgroundTransparency= 1
     title.Text                  = "YOUR BUSINESSES"
     title.TextColor3            = TEXT_W
-    title.Font                  = Enum.Font.GothamBold
+    title.FontFace              = FONT_BOLD
     title.TextSize              = 20
     title.TextXAlignment        = Enum.TextXAlignment.Left
     title.Parent                = header
@@ -88,7 +97,7 @@ function BusinessUI:_build()
     rateLbl.BackgroundTransparency= 1
     rateLbl.Text                  = "$25/hr  ·  Max offline: $200"
     rateLbl.TextColor3            = GREEN
-    rateLbl.Font                  = Enum.Font.Gotham
+    rateLbl.FontFace              = FONT_REG
     rateLbl.TextSize              = 13
     rateLbl.TextXAlignment        = Enum.TextXAlignment.Left
     rateLbl.Parent                = header
@@ -101,7 +110,7 @@ function BusinessUI:_build()
     balance.BackgroundTransparency= 1
     balance.Text                  = "$0"
     balance.TextColor3            = GOLD
-    balance.Font                  = Enum.Font.GothamBold
+    balance.FontFace              = FONT_BOLD
     balance.TextSize              = 18
     balance.Parent                = header
     self.balanceLabel = balance
@@ -112,7 +121,7 @@ function BusinessUI:_build()
     closeBtn.BackgroundColor3= Color3.fromRGB(200, 50, 50)
     closeBtn.Text            = "X"
     closeBtn.TextColor3      = TEXT_W
-    closeBtn.Font            = Enum.Font.GothamBold
+    closeBtn.FontFace        = FONT_BOLD
     closeBtn.TextSize        = 16
     closeBtn.BorderSizePixel = 0
     closeBtn.Parent          = header
@@ -127,7 +136,7 @@ function BusinessUI:_build()
     scroll.BackgroundTransparency= 1
     scroll.BorderSizePixel       = 0
     scroll.ScrollBarThickness    = 5
-    scroll.ScrollBarImageColor3  = Color3.fromRGB(90, 90, 140)
+    scroll.ScrollBarImageColor3  = Color3.fromRGB(90, 90, 90)
     scroll.CanvasSize            = UDim2.new(0, 0, 0, 0)
     scroll.AutomaticCanvasSize   = Enum.AutomaticSize.Y
     scroll.Parent                = panel
@@ -178,7 +187,7 @@ function BusinessUI:_makeCard(business, order, isOwned, playerBalance)
     local img = Instance.new("ImageLabel")
     img.Size                = UDim2.new(1, -20, 0, 118)
     img.Position            = UDim2.new(0, 10, 0, 12)
-    img.BackgroundColor3    = Color3.fromRGB(35, 35, 55)
+    img.BackgroundColor3    = Color3.fromRGB(42, 42, 42)
     img.BorderSizePixel     = 0
     img.Image               = business.imageId
     img.ScaleType           = Enum.ScaleType.Fit
@@ -192,7 +201,7 @@ function BusinessUI:_makeCard(business, order, isOwned, playerBalance)
     incomeLbl.BackgroundTransparency= 1
     incomeLbl.Text                  = "+" .. PackModule.formatNumber(business.hourlyIncome) .. "/hr"
     incomeLbl.TextColor3            = GREEN
-    incomeLbl.Font                  = Enum.Font.GothamBold
+    incomeLbl.FontFace              = FONT_BOLD
     incomeLbl.TextSize              = 18
     incomeLbl.Parent                = card
 
@@ -203,7 +212,7 @@ function BusinessUI:_makeCard(business, order, isOwned, playerBalance)
     nameLbl.BackgroundTransparency= 1
     nameLbl.Text                  = business.name
     nameLbl.TextColor3            = TEXT_W
-    nameLbl.Font                  = Enum.Font.GothamBold
+    nameLbl.FontFace              = FONT_BOLD
     nameLbl.TextSize              = 14
     nameLbl.TextWrapped           = true
     nameLbl.Parent                = card
@@ -215,7 +224,7 @@ function BusinessUI:_makeCard(business, order, isOwned, playerBalance)
     descLbl.BackgroundTransparency= 1
     descLbl.Text                  = business.description
     descLbl.TextColor3            = TEXT_DIM
-    descLbl.Font                  = Enum.Font.Gotham
+    descLbl.FontFace              = FONT_REG
     descLbl.TextSize              = 11
     descLbl.TextWrapped           = true
     descLbl.TextYAlignment        = Enum.TextYAlignment.Top
@@ -235,7 +244,7 @@ function BusinessUI:_makeCard(business, order, isOwned, playerBalance)
         ownedLbl.BackgroundTransparency= 1
         ownedLbl.Text                  = "OWNED"
         ownedLbl.TextColor3            = GREEN
-        ownedLbl.Font                  = Enum.Font.GothamBold
+        ownedLbl.FontFace              = FONT_BOLD
         ownedLbl.TextSize              = 14
         ownedLbl.Parent                = badge
     else
@@ -248,7 +257,7 @@ function BusinessUI:_makeCard(business, order, isOwned, playerBalance)
         buyBtn.BackgroundColor3= btnColor
         buyBtn.Text            = "BUY  $" .. PackModule.formatNumber(business.cost)
         buyBtn.TextColor3      = canAfford and Color3.fromRGB(15, 15, 15) or TEXT_DIM
-        buyBtn.Font            = Enum.Font.GothamBold
+        buyBtn.FontFace        = FONT_BOLD
         buyBtn.TextSize        = 13
         buyBtn.BorderSizePixel = 0
         buyBtn.Parent          = card

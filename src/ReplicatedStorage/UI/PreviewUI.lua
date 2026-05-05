@@ -8,12 +8,14 @@
 local TweenService = game:GetService("TweenService")
 local PackModule   = require(script.Parent.Parent.PackModule)
 
-local DARK_BG   = Color3.fromRGB(12,  12,  22)
-local PANEL_BG  = Color3.fromRGB(20,  20,  36)
-local HEADER_BG = Color3.fromRGB(26,  26,  48)
-local ROW_BG    = Color3.fromRGB(28,  28,  48)
+local FONT_BOLD = Font.new("rbxasset://fonts/families/ComicNeueAngular.json", Enum.FontWeight.Bold)
+local FONT_REG  = Font.new("rbxasset://fonts/families/ComicNeueAngular.json")
+local DARK_BG   = Color3.fromRGB(14,  14,  14)
+local PANEL_BG  = Color3.fromRGB(28,  28,  28)
+local HEADER_BG = Color3.fromRGB(40,  40,  40)
+local ROW_BG    = Color3.fromRGB(46,  46,  46)
 local TEXT_W    = Color3.fromRGB(255, 255, 255)
-local TEXT_DIM  = Color3.fromRGB(160, 160, 200)
+local TEXT_DIM  = Color3.fromRGB(170, 170, 170)
 local GOLD      = Color3.fromRGB(255, 220,  50)
 
 -- ---------------------------------------------------------------------------
@@ -58,6 +60,13 @@ function PreviewUI:_build()
     panel.BorderSizePixel = 0
     panel.Parent          = sg
     Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 16)
+    local panelGrad = Instance.new("UIGradient")
+    panelGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(38, 38, 38)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 20)),
+    })
+    panelGrad.Rotation = 90
+    panelGrad.Parent = panel
     self.panel = panel
 
     -- ---- Header ------------------------------------------------------------
@@ -67,7 +76,6 @@ function PreviewUI:_build()
     header.BorderSizePixel = 0
     header.Parent          = panel
     Instance.new("UICorner", header).CornerRadius = UDim.new(0, 16)
-    -- cover bottom rounding
     local hFill = Instance.new("Frame")
     hFill.Size            = UDim2.new(1, 0, 0, 16)
     hFill.Position        = UDim2.new(0, 0, 1, -16)
@@ -80,7 +88,7 @@ function PreviewUI:_build()
     tierBadge.Name             = "TierBadge"
     tierBadge.Size             = UDim2.new(0, 80, 0, 26)
     tierBadge.Position         = UDim2.new(0, 14, 0.5, -13)
-    tierBadge.BackgroundColor3 = Color3.fromRGB(80, 80, 120)
+    tierBadge.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
     tierBadge.BorderSizePixel  = 0
     tierBadge.Parent           = header
     Instance.new("UICorner", tierBadge).CornerRadius = UDim.new(0, 6)
@@ -90,7 +98,7 @@ function PreviewUI:_build()
     tierLbl.BackgroundTransparency= 1
     tierLbl.Text                  = "TIER"
     tierLbl.TextColor3            = TEXT_W
-    tierLbl.Font                  = Enum.Font.GothamBold
+    tierLbl.FontFace              = FONT_BOLD
     tierLbl.TextSize              = 12
     tierLbl.Parent                = tierBadge
     self.tierBadge = tierBadge
@@ -103,20 +111,19 @@ function PreviewUI:_build()
     titleLbl.BackgroundTransparency= 1
     titleLbl.Text                  = "WHAT'S INSIDE"
     titleLbl.TextColor3            = TEXT_W
-    titleLbl.Font                  = Enum.Font.GothamBold
+    titleLbl.FontFace              = FONT_BOLD
     titleLbl.TextSize              = 17
     titleLbl.TextXAlignment        = Enum.TextXAlignment.Left
     titleLbl.Parent                = header
     self.titleLbl = titleLbl
 
-    -- Close button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size            = UDim2.new(0, 38, 0, 38)
     closeBtn.Position        = UDim2.new(1, -50, 0.5, -19)
     closeBtn.BackgroundColor3= Color3.fromRGB(200, 50, 50)
     closeBtn.Text            = "X"
     closeBtn.TextColor3      = TEXT_W
-    closeBtn.Font            = Enum.Font.GothamBold
+    closeBtn.FontFace        = FONT_BOLD
     closeBtn.TextSize        = 16
     closeBtn.BorderSizePixel = 0
     closeBtn.Parent          = header
@@ -131,7 +138,7 @@ function PreviewUI:_build()
     scroll.BackgroundTransparency= 1
     scroll.BorderSizePixel       = 0
     scroll.ScrollBarThickness    = 5
-    scroll.ScrollBarImageColor3  = Color3.fromRGB(90, 90, 140)
+    scroll.ScrollBarImageColor3  = Color3.fromRGB(90, 90, 90)
     scroll.CanvasSize            = UDim2.new(0, 0, 0, 0)
     scroll.AutomaticCanvasSize   = Enum.AutomaticSize.Y
     scroll.Parent                = panel
@@ -171,7 +178,6 @@ function PreviewUI:_makeRow(item, order)
     strip.BorderSizePixel = 0
     strip.Parent          = row
     Instance.new("UICorner", strip).CornerRadius = UDim.new(0, 10)
-    -- Cover right side rounding of strip
     local stripFill = Instance.new("Frame")
     stripFill.Size            = UDim2.new(0.5, 0, 1, 0)
     stripFill.Position        = UDim2.new(0.5, 0, 0, 0)
@@ -198,7 +204,7 @@ function PreviewUI:_makeRow(item, order)
     nameLbl.BackgroundTransparency= 1
     nameLbl.Text                  = item.name
     nameLbl.TextColor3            = TEXT_W
-    nameLbl.Font                  = Enum.Font.GothamBold
+    nameLbl.FontFace              = FONT_BOLD
     nameLbl.TextSize              = 13
     nameLbl.TextXAlignment        = Enum.TextXAlignment.Left
     nameLbl.TextWrapped           = true
@@ -218,7 +224,7 @@ function PreviewUI:_makeRow(item, order)
     badgeLbl.BackgroundTransparency= 1
     badgeLbl.Text                  = item.rarity:upper()
     badgeLbl.TextColor3            = TEXT_W
-    badgeLbl.Font                  = Enum.Font.GothamBold
+    badgeLbl.FontFace              = FONT_BOLD
     badgeLbl.TextSize              = 10
     badgeLbl.Parent                = badge
 
@@ -230,7 +236,7 @@ function PreviewUI:_makeRow(item, order)
     valLbl.BackgroundTransparency= 1
     valLbl.Text                  = "$" .. PackModule.formatNumber(item.sellValue)
     valLbl.TextColor3            = GOLD
-    valLbl.Font                  = Enum.Font.GothamBold
+    valLbl.FontFace              = FONT_BOLD
     valLbl.TextSize              = 13
     valLbl.TextXAlignment        = Enum.TextXAlignment.Right
     valLbl.Parent                = row
@@ -243,7 +249,7 @@ function PreviewUI:_makeRow(item, order)
     chanceLbl.BackgroundTransparency= 1
     chanceLbl.Text                  = string.format("%.1f%% chance", chancePct)
     chanceLbl.TextColor3            = TEXT_DIM
-    chanceLbl.Font                  = Enum.Font.Gotham
+    chanceLbl.FontFace              = FONT_REG
     chanceLbl.TextSize              = 11
     chanceLbl.TextXAlignment        = Enum.TextXAlignment.Right
     chanceLbl.Parent                = row
@@ -254,25 +260,21 @@ end
 -- ---------------------------------------------------------------------------
 
 function PreviewUI:show(pack)
-    -- Clear previous rows
     for _, child in ipairs(self.scroll:GetChildren()) do
         if child:IsA("Frame") then child:Destroy() end
     end
 
-    -- Update header tier badge
     local tier = PackModule.getPackTier(pack.tier)
     self.tierBadge.BackgroundColor3 = tier.primaryColor
     self.tierLbl.TextColor3         = tier.textColor
     self.tierLbl.Text               = tier.displayName
     self.titleLbl.Text              = pack.name .. "  —  What's Inside"
 
-    -- Compute total weight for drop % display
     self._totalWeight = 0
     for _, item in ipairs(pack.rewards) do
         self._totalWeight += item.weight
     end
 
-    -- Sort best-first (Legendary at top — more exciting)
     local sorted = {}
     for _, item in ipairs(pack.rewards) do
         table.insert(sorted, item)
@@ -283,7 +285,6 @@ function PreviewUI:show(pack)
         self:_makeRow(item, i)
     end
 
-    -- Slide-in animation
     self.screenGui.Enabled = true
     self.panel.Position    = UDim2.fromScale(0.23, 0.02)
     TweenService:Create(self.panel, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
