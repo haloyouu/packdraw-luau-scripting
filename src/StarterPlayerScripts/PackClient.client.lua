@@ -328,6 +328,10 @@ local function openPack(packId)
                 BackgroundColor3 = Color3.fromRGB(200, 50, 50)
             }):Play()
             task.delay(1.8, function()
+                -- Reset text AND color back to normal
+                entry.openBtn.Text = pack.price == 0
+                    and "FREE  —  OPEN"
+                    or  "OPEN  —  $" .. PackModule.formatNumber(pack.price)
                 TweenService:Create(entry.openBtn, TweenInfo.new(0.2), {
                     BackgroundColor3 = tier.primaryColor
                 }):Play()
@@ -428,8 +432,12 @@ end
 -- =========================================================================
 -- Business BUY callback
 -- =========================================================================
+local isBuying = false
 business.onBuy = function(businessId)
+    if isBuying then return end
+    isBuying = true
     local result = BuyBusinessFn:InvokeServer(businessId)
+    isBuying = false
     if result and result.success then
         playerData.balance = result.newBalance
         playerData.businesses = playerData.businesses or {}
