@@ -3,8 +3,9 @@
 -- CS:GO / Packdraw style reel UI
 -- =============================================================================
 
-local TweenService = game:GetService("TweenService")
-local PackModule   = require(script.Parent.Parent.PackModule)
+local TweenService  = game:GetService("TweenService")
+local Lighting      = game:GetService("Lighting")
+local PackModule    = require(script.Parent.Parent.PackModule)
 
 local SLOT_W      = 138
 local CARD_W      = 126
@@ -50,6 +51,7 @@ function OpeningUI.new(playerGui)
     self._currentItem = nil
     self._currentPack = nil
     self._glowTween   = nil
+    self._blurEffect  = nil
     self:_build()
     return self
 end
@@ -67,11 +69,11 @@ function OpeningUI:_build()
     sg.Parent         = self.playerGui
     self.screenGui    = sg
 
-    -- Full-screen dark overlay
+    -- Full-screen dark overlay (subtle tint only — blur does the heavy lifting)
     local overlay = Instance.new("Frame")
     overlay.Size                   = UDim2.fromScale(1, 1)
     overlay.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
-    overlay.BackgroundTransparency = 0.45
+    overlay.BackgroundTransparency = 0.72
     overlay.BorderSizePixel        = 0
     overlay.ZIndex                 = 1
     overlay.Parent                 = sg
@@ -82,10 +84,11 @@ function OpeningUI:_build()
     panel.AnchorPoint      = Vector2.new(0.5, 0.5)
     panel.Size             = UDim2.new(0.92, 0, 0, 420)
     panel.Position         = UDim2.fromScale(0.5, 0.5)
-    panel.BackgroundColor3 = BG
-    panel.BorderSizePixel  = 0
-    panel.ZIndex           = 2
-    panel.Parent           = sg
+    panel.BackgroundColor3       = BG
+    panel.BackgroundTransparency = 1
+    panel.BorderSizePixel        = 0
+    panel.ZIndex                 = 2
+    panel.Parent                 = sg
     Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 6)
     self.panel = panel
 
@@ -623,6 +626,15 @@ function OpeningUI:showOpening(pack)
     self._currentPack = pack
     self._currentItem = nil
 
+    -- Add blur to the game world behind the UI
+    if not self._blurEffect then
+        local blur = Instance.new("BlurEffect")
+        blur.Name   = "PackOpenBlur"
+        blur.Size   = 24
+        blur.Parent = Lighting
+        self._blurEffect = blur
+    end
+
     self.nameStrip.Visible  = false
     self.spinLbl.Visible    = true
     self.spinLbl.Text       = "Opening " .. pack.name .. "..."
@@ -694,7 +706,14 @@ function OpeningUI:_close()
     local t = TweenService:Create(self.panel,
         TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
         { Size = UDim2.new(0.92, 0, 0, 4) })
-    t.Completed:Connect(function() self.screenGui.Enabled = false end)
+    t.Completed:Connect(function()
+        self.screenGui.Enabled = false
+        -- Remove blur when UI closes
+        if self._blurEffect then
+            self._blurEffect:Destroy()
+            self._blurEffect = nil
+        end
+    end)
     t:Play()
 end
 
