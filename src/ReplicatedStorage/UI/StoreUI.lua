@@ -273,6 +273,85 @@ function StoreUI:_makeCard(pack, order: number)
         end
     end)
 
+    -- ── "What's Inside?" hover hint ─────────────────────────────────────────
+    -- Dark overlay over the image area that fades in when card is hovered
+    local hintOverlay = Instance.new("Frame")
+    hintOverlay.Size                   = UDim2.new(1, -20, 0, 130)
+    hintOverlay.Position               = UDim2.new(0, 10, 0, 44)
+    hintOverlay.BackgroundColor3       = Color3.fromRGB(0, 0, 0)
+    hintOverlay.BackgroundTransparency = 1
+    hintOverlay.BorderSizePixel        = 0
+    hintOverlay.ZIndex                 = 5
+    hintOverlay.Parent                 = card
+    Instance.new("UICorner", hintOverlay).CornerRadius = UDim.new(0, 8)
+
+    local hintLbl = Instance.new("TextLabel")
+    hintLbl.AnchorPoint            = Vector2.new(0.5, 0.5)
+    hintLbl.Size                   = UDim2.fromScale(0.85, 0.7)
+    hintLbl.Position               = UDim2.new(0.5, 0, 0.5, 12)
+    hintLbl.BackgroundTransparency = 1
+    hintLbl.Text                   = "What's Inside?"
+    hintLbl.TextColor3             = Color3.fromRGB(255, 255, 255)
+    hintLbl.FontFace               = FONT_BOLD
+    hintLbl.TextSize               = 16
+    hintLbl.TextTransparency       = 1
+    hintLbl.TextWrapped            = true
+    hintLbl.ZIndex                 = 6
+    hintLbl.Parent                 = hintOverlay
+
+    -- Small tap icon below text
+    local hintSub = Instance.new("TextLabel")
+    hintSub.AnchorPoint            = Vector2.new(0.5, 0)
+    hintSub.Size                   = UDim2.new(0.85, 0, 0, 18)
+    hintSub.Position               = UDim2.new(0.5, 0, 0.7, 4)
+    hintSub.BackgroundTransparency = 1
+    hintSub.Text                   = "click to preview"
+    hintSub.TextColor3             = Color3.fromRGB(200, 200, 200)
+    hintSub.FontFace               = FONT_REG
+    hintSub.TextSize               = 11
+    hintSub.TextTransparency       = 1
+    hintSub.ZIndex                 = 6
+    hintSub.Parent                 = hintOverlay
+
+    -- Debounce so moving between card and openBtn doesn't flicker
+    local hoverSnap = 0
+    local function showHint()
+        hoverSnap += 1
+        TweenService:Create(hintOverlay, TweenInfo.new(0.2), {
+            BackgroundTransparency = 0.35,
+        }):Play()
+        TweenService:Create(hintLbl,
+            TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            TextTransparency = 0,
+            Position         = UDim2.new(0.5, 0, 0.5, 0),
+        }):Play()
+        TweenService:Create(hintSub,
+            TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            TextTransparency = 0,
+        }):Play()
+    end
+    local function hideHint()
+        local snap = hoverSnap
+        task.defer(function()
+            if hoverSnap ~= snap then return end
+            TweenService:Create(hintOverlay, TweenInfo.new(0.18), {
+                BackgroundTransparency = 1,
+            }):Play()
+            TweenService:Create(hintLbl, TweenInfo.new(0.18), {
+                TextTransparency = 1,
+                Position         = UDim2.new(0.5, 0, 0.5, 12),
+            }):Play()
+            TweenService:Create(hintSub, TweenInfo.new(0.18), {
+                TextTransparency = 1,
+            }):Play()
+        end)
+    end
+
+    card.MouseEnter:Connect(showHint)
+    card.MouseLeave:Connect(hideHint)
+    openBtn.MouseEnter:Connect(showHint)
+    openBtn.MouseLeave:Connect(hideHint)
+
     self.packCards[pack.id] = { card = card, openBtn = openBtn, pack = pack }
     return card
 end
