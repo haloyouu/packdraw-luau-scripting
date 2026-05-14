@@ -388,6 +388,11 @@ local function openPack(packId)
             refreshData()
             if pack then
                 openPack(pack.id)
+                -- If openPack returned without starting (e.g. can't afford), fall back to store
+                if not isOpening then
+                    refreshStore()
+                    store:show()
+                end
             else
                 refreshStore()
                 store:show()
